@@ -1,0 +1,83 @@
+_data.tf:
+   - terraform
+   - data
+_provider.tf:
+   - provider
+_variables.tf:
+   3
+compute.tf:
+   - azurerm_app_service
+   - azurerm_app_service_plan
+   - azurerm_virtual_machine
+   - aws_instance
+   - azurerm_function_app
+   - null_resource
+database.tf:
+   - postgresql_database
+   - aws_db_instance
+   - azurerm_sql_server
+   - azurerm_sql_database
+monitoring.tf:
+   - azurerm_application_insights
+   - aws_cloudwatch_log_group
+   - aws_cloudwatch_metric_alarm
+   - aws_flow_log
+network.tf:
+   - azurerm_virtual_network
+   - azurerm_subnet
+   - azurerm_network_watcher
+   - azurerm_public_ip
+   - azurerm_network_interface
+   - azurerm_lb
+   - azurerm_lb_backend_address_pool
+   - azurerm_lb_probe
+   - aws_vpn_connection
+   - aws_vpn_connection_route
+   - aws_vpn_gateway
+   - aws_vpc
+   - aws_vpc_dhcp_options
+   - aws_vpc_dhcp_options_association
+   - aws_vpc_endpoint
+   - aws_vpc_peering_connection
+   - aws_subnet
+   - aws_nat_gateway
+   - aws_lb
+   - aws_lb_listener
+   - aws_lb_target_group
+   - aws_lb_target_group_attachment
+   - aws_internet_gateway
+   - aws_elb
+   - aws_eip
+   - aws_db_subnet_group
+   - aws_customer_gateway
+   - aws_alb_target_group_attachment
+routing.tf:
+   - aws_route
+   - aws_route_table
+   - aws_route_table_association
+security.tf:
+   - azurerm_resource_group
+   - azurerm_network_security_group
+   - azurerm_network_security_rule
+   - azurerm_lb_rule
+   - azurerm_availability_set
+   - azurerm_sql_firewall_rule
+   - azurerm_key_vault
+   - azurerm_key_vault_secret
+   - aws_security_group
+   - aws_security_group_rule
+   - aws_key_pair
+   - aws_iam_role
+   - aws_iam_role_policy
+   - aws_kms_key
+   - aws_kms_alias
+storage.tf:
+   - azurerm_storage_account
+   - azurerm_storage_share
+   - azurerm_managed_disk
+   - aws_volume_attachment
+   - aws_s3_bucket
+   - aws_ebs_volume
+   - aws_efs_file_system
+   - aws_cloudformation_stack
+   - aws_efs_mount_target
