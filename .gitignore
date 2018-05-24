@@ -12,6 +12,7 @@
 /lib/
 /lib64/
 /_build
+.eggs
 
 *.py[cod]
 
