@@ -60,9 +60,6 @@
     - value: name
       regex: ^cust[dtaps][0-9]{3}-sg-[a-z\-]+$
 
-- resource: aws_security_group_rule
-  regex: DSFW_Managed
-
 - resource: aws_subnet
   regex: .*
   fields:
@@ -147,9 +144,6 @@
   fields:
     - value: name
       regex: ^cust[dtaps][0-9]{3}-nsg-[a-z0-9\-]+$
-
-- resource: azurerm_network_security_rule
-  regex: DSFW_Managed
 
 - resource: azurerm_public_ip
   regex: .*
