@@ -39,6 +39,7 @@ import platform
 import re
 import warnings
 from collections import namedtuple
+from ast import literal_eval
 
 import hcl
 import yaml
@@ -105,7 +106,7 @@ class RecursiveDictionary(dict):
         self.iter_rec_update(third.iteritems())
 
     def iter_rec_update(self, iterator):
-        """Updates recursivelly"""
+        """Updates recursively"""
         for (key, value) in iterator:
             if key in self and \
                     isinstance(self[key], dict) and isinstance(value, dict):
@@ -201,7 +202,18 @@ class HclView(object):
         """Retrieves the value of a variable from the global view of variables"""
         if value.startswith('${var.'):
             variable_name = value.split('var.')[1].split('}')[0]
-            value = self.state.get('variable', {}).get(variable_name, value)
+            match = re.search(r'\[.*\]', variable_name)  # look for '[' ending in ']' pattern
+            if match:
+                name = variable_name.split('[')[0]
+                value = self.state.get('variable', {}).get(name, value)
+                if isinstance(value, dict):
+                    key = literal_eval(match.group(0))[0]
+                    value = value.get(key)
+                elif isinstance(value, list):
+                    index = literal_eval(match.group(0))[0]
+                    value = value[index]
+            else:
+                value = self.state.get('variable', {}).get(variable_name, value)
         return value
 
     def get_resource_data_by_type(self, resource_type, resource_name):
@@ -229,7 +241,7 @@ class Stack(object):
         self.rules_set = self._get_naming_rules(naming_file_path)
         self.positioning = self._get_positioning_rules(positioning_file_path)
         self.positioning_skip_file = file_to_skip_for_positioning
-        self.resources = self._get_resources(global_variables_file_path)
+        self.resources, self.hcl_view = self._instantiate(global_variables_file_path)
         self._errors = []
 
     @staticmethod
@@ -273,7 +285,7 @@ class Stack(object):
             global_variables = {}
         return global_variables
 
-    def _get_resources(self, global_variables_file_path):
+    def _instantiate(self, global_variables_file_path):
         resources = []
         file_resources = []
         global_variables = self._get_global_variables(global_variables_file_path)
@@ -312,7 +324,7 @@ class Stack(object):
                                                                 hcl_resource.resource_type,
                                                                 hcl_resource.resource_name),
                                                             hcl_resource.data))
-        return resources
+        return resources, hcl_view
 
     def _instantiate_resource(self, filename, resource_type, name, data, original_data):  # pylint: disable=too-many-arguments
         resource = LintingResource(filename, resource_type, name, data, original_data)
