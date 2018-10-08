@@ -31,19 +31,20 @@ Main code for terraformtestinglib
 
 """
 
+import copy
 import glob
 import logging
 import os
 import platform
 import re
 import warnings
+from collections import namedtuple
 
 import hcl
 import yaml
 from yaml.parser import ParserError
 from colorama import init
 from schema import SchemaError
-
 
 from .configuration import NAMING_SCHEMA, POSITIONING_SCHEMA
 from .errortypes import RuleError, ResourceError, FilenameError
@@ -65,6 +66,8 @@ LOGGER_BASENAME = '''terraformtestinglib'''
 LOGGER = logging.getLogger(LOGGER_BASENAME)
 LOGGER.addHandler(logging.NullHandler())
 
+HclFileResource = namedtuple('HclFileResource', ('filename', 'resource_type', 'resource_name', 'data'))
+
 
 def warning_on_one_line(message, category, *rest_args):  # pylint: disable=unused-argument
     """Warning formating method"""
@@ -72,6 +75,7 @@ def warning_on_one_line(message, category, *rest_args):  # pylint: disable=unuse
 
 
 warnings.formatwarning = warning_on_one_line
+warnings.simplefilter('always', PendingDeprecationWarning)
 
 if platform.platform().lower() == 'windows':
     init(convert=True)
@@ -79,16 +83,153 @@ else:
     init()
 
 
+class RecursiveDictionary(dict):
+    """Implements recursively updating dictionary
+
+    RecursiveDictionary provides the methods update and iter_rec_update
+    that can be used to update member dictionaries rather than overwriting
+    them.
+    """
+
+    def update(self, other, **third):
+        """Implements the recursion
+
+        Recursively update the dictionary with the contents of other and
+        third like dict.update() does - but don't overwrite sub-dictionaries.
+        """
+        try:
+            iterator = other.iteritems()
+        except AttributeError:
+            iterator = other
+        self.iter_rec_update(iterator)
+        self.iter_rec_update(third.iteritems())
+
+    def iter_rec_update(self, iterator):
+        """Updates recursivelly"""
+        for (key, value) in iterator:
+            if key in self and \
+                    isinstance(self[key], dict) and isinstance(value, dict):
+                self[key] = RecursiveDictionary(self[key])
+                self[key].update(value)
+            else:
+                self[key] = value
+
+
+class HclView(object):
+    """Object representing the global view of hcl resources along with any global variables"""
+
+    def __init__(self, hcl_resources, global_variables=None):
+        logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
+        self._logger = logging.getLogger(logger_name)
+        self.state = RecursiveDictionary()
+        if global_variables and isinstance(global_variables, dict):
+            self.state.update({'variable': global_variables})
+        for hcl_resource in hcl_resources:
+            self._add_hcl_resource(hcl_resource)
+        self.resources = self._interpolate_state(copy.deepcopy(self.state.get('resource')))
+
+    def _add_hcl_resource(self, data):
+        self.state.update(self._filter_empty_variables(data))
+
+    @staticmethod
+    def _filter_empty_variables(data):
+        if not 'variable'in data.keys():
+            return data
+        data['variable'] = {key: value.get('default')
+                            for key, value in data.get('variable').items() if value}
+        return data
+
+    def _interpolate_state(self, state):
+        for _, resources_entries in state.items():
+            for resource_name, resource_data in resources_entries.items():
+                counter = resource_data.get('count')
+                if counter:
+                    del resources_entries[resource_name]
+                    del resource_data['count']
+                    for number in range(counter):
+                        name = resource_name + '.{}'.format(number)
+                        data = self._interpolate_counter(copy.deepcopy(resource_data), str(number))
+                        resources_entries[name] = data
+        state = self._interpolate_value(state)
+        return state
+
+    def _interpolate_value(self, data):
+        for key, value in data.items():
+            if isinstance(key, basestring):
+                key = self._interpolate_variable(key)
+            if isinstance(value, basestring):
+                value = self._interpolate_variable(value)
+            elif isinstance(value, dict):
+                value = self._interpolate_value(value)
+            data[key] = value
+        return data
+
+    def _interpolate_counter(self, data, number):
+        for key, value in data.items():
+            key = key.replace('count.index', number)
+            if isinstance(value, basestring):
+                value = value.replace('count.index', number)
+            if isinstance(value, dict):
+                value = self._interpolate_counter(value, number)
+            data[key] = value
+        return data
+
+    @staticmethod
+    def _interpolate_format(value):
+        match = re.search(r'\(.*\)', value)  # look for '(' ending in ')' pattern
+        if match:
+            contents = match.group(0)[1:-1]
+            value, argument = contents.split(',')
+            argument = eval(argument, {"__builtins__": {}})  # pylint: disable=eval-used
+            value = eval(' % '.join([value, str(argument)]), {"__builtins__": {}})  # pylint: disable=eval-used
+        return value
+
+    def _interpolate_variable(self, value):
+        match = re.search(r'\$\{.*\}', value)  # look for '${' ending in '}' pattern
+        if match:
+            regex = match.group(0)
+            if regex.startswith('${var.'):
+                interpolated_value = self.get_variable_value(regex)
+                if interpolated_value == regex:
+                    self._logger.error('Could not interpolate variable "{}" maybe not set in variables?'.format(value))
+                value = value.replace(regex, interpolated_value)
+            elif '${format(' in regex:
+                value = self._interpolate_format(value)
+        return value
+
+    def get_variable_value(self, value):
+        """Retrieves the value of a variable from the global view of variables"""
+        if value.startswith('${var.'):
+            variable_name = value.split('var.')[1].split('}')[0]
+            value = self.state.get('variable', {}).get(variable_name, value)
+        return value
+
+    def get_resource_data_by_type(self, resource_type, resource_name):
+        """Retrieves the data of a resource from the global hcl state based on its type."""
+        return self.resources.get(resource_type, {}).get(resource_name)
+
+    def get_counter_resource_data_by_type(self, resource_type, resource_name):  # pylint: disable=invalid-name
+        """Retrieves the data of a resource from the global hcl state based on its type that has a count."""
+        return [data for resource, data in self.resources.get(resource_type, {}).items()
+                if resource.startswith(resource_name)]
+
+
 class Stack(object):
     """Manages a stack as a collection of resources that can be checked for name convention"""
 
-    def __init__(self, configuration_path, naming_file_path, positioning_file_path=None):
+    def __init__(self,  # pylint: disable=too-many-arguments
+                 configuration_path,
+                 naming_file_path,
+                 positioning_file_path=None,
+                 global_variables_file_path=None,
+                 file_to_skip_for_positioning=None):
         logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
         self._logger = logging.getLogger(logger_name)
         self.path = configuration_path
         self.rules_set = self._get_naming_rules(naming_file_path)
         self.positioning = self._get_positioning_rules(positioning_file_path)
-        self.resources = self._get_resources()
+        self.positioning_skip_file = file_to_skip_for_positioning
+        self.resources = self._get_resources(global_variables_file_path)
         self._errors = []
 
     @staticmethod
@@ -121,22 +262,66 @@ class Stack(object):
             raise InvalidPositioning(error)
         return positioning
 
-    def _get_resources(self):
+    def _get_global_variables(self, global_variables_file):
+        if not global_variables_file:
+            return {}
+        try:
+            global_variables_file_path = os.path.expanduser(global_variables_file)
+            global_variables = hcl.load(open(global_variables_file_path, 'r'))
+        except ValueError:
+            self._logger.warning('Could not parse %s for resources', global_variables_file)
+            global_variables = {}
+        return global_variables
+
+    def _get_resources(self, global_variables_file_path):
         resources = []
+        file_resources = []
+        global_variables = self._get_global_variables(global_variables_file_path)
         path = os.path.expanduser(os.path.join(self.path, '*.tf'))
         for tf_file_path in glob.glob(path):
             _, _, filename = tf_file_path.rpartition(os.path.sep)
             try:
                 self._logger.debug('Trying to load file :%s', tf_file_path)
                 data = hcl.load(open(tf_file_path, 'r'))
-                resourse = Resource(filename, data)
-                resourse.register_rules_set(self.rules_set)
-                resourse.register_positioning_set(self.positioning)
-                resources.append(resourse)
+                file_resources.append(data)
+                for resource_type, resource in data.get('resource', {}).items():
+                    for resource_name, resource_data in resource.items():
+                        resources.append(HclFileResource(filename, resource_type, resource_name, resource_data))
             except ValueError:
-                self._logger.error('Could not parse %s for resources', filename)
+                self._logger.debug('Could not parse %s for resources', filename)
+        return self._instantiate_resources(file_resources, resources, global_variables)
 
+    def _instantiate_resources(self, file_resources, hcl_resources, global_variables):
+        hcl_view = HclView(file_resources, global_variables)
+        resources = []
+        for hcl_resource in hcl_resources:
+            count = hcl_resource.data.get('count')
+            if count:
+                for data in hcl_view.get_counter_resource_data_by_type(hcl_resource.resource_type,
+                                                                       hcl_resource.resource_name):
+                    resources.append(self._instantiate_resource(hcl_resource.filename,
+                                                                hcl_resource.resource_type,
+                                                                hcl_resource.resource_name,
+                                                                data,
+                                                                hcl_resource.data))
+            else:
+                resources.append(self._instantiate_resource(hcl_resource.filename,
+                                                            hcl_resource.resource_type,
+                                                            hcl_resource.resource_name,
+                                                            hcl_view.get_resource_data_by_type(
+                                                                hcl_resource.resource_type,
+                                                                hcl_resource.resource_name),
+                                                            hcl_resource.data))
         return resources
+
+    def _instantiate_resource(self, filename, resource_type, name, data, original_data):  # pylint: disable=too-many-arguments
+        resource = LintingResource(filename, resource_type, name, data, original_data)
+        resource.register_rules_set(self.rules_set)
+        if filename == self.positioning_skip_file:
+            resource.register_positioning_set(None)
+        else:
+            resource.register_positioning_set(self.positioning)
+        return resource
 
     def validate(self):
         """Validates all the resources of the stack"""
@@ -152,20 +337,23 @@ class Stack(object):
         return self._errors
 
 
-class Resource(object):
+class LintingResource(object):  # pylint: disable=too-many-instance-attributes
     """Manages a resource and provides validation capabilities."""
 
-    def __init__(self, filename, data):
+    def __init__(self, filename, resource_type, name, data, original_data):  # pylint: disable=too-many-arguments
         logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
         self._logger = logging.getLogger(logger_name)
         self.filename = filename
+        self.name = name
+        self.type = resource_type
         self.data = data
+        self.original_data = original_data
         self.rules_set = None
         self.positioning_set = None
         self.errors = None
 
     def __getattr__(self, value):
-        return self.data.get('resource', {}).get(value)
+        return self.data.get(value)
 
     def register_rules_set(self, rules_set):
         """Registers the set of rules with the Resource."""
@@ -187,83 +375,78 @@ class Resource(object):
         if not self.rules_set:
             self._logger.warning('No rules set!')
             return True
-        resource = self.data.get('resource')
         if self.positioning_set is None:
-            self._logger.info('Skipping resource positioning due to positioning file not been provided.')
+            message = ('Skipping resource positioning due to positioning file not been provided or '
+                       'being skipped.')
+            self._logger.info(message)
             validate_positioning = False
         elif os.environ.get('SKIP_POSITIONING'):
             self._logger.info('Skipping resource positioning due to global environment setting.')
             validate_positioning = False
-        if resource:
-            for resource_type, resource_data in resource.items():
-                self._logger.debug('Found resource type %s', resource_type)
-                self._validate_naming(resource_type, resource_data)
-                if validate_positioning:
-                    self._validate_positioning(resource_type, resource_data)
+        self._logger.debug('Resource type %s', self.type)
+        self._validate_naming()
+        if validate_positioning:
+            self._validate_positioning()
         return True
 
-    def _is_check_skipped(self, resource_name, resource_data, tag_name, deprecated_tag_name=None):
+    def _is_check_skipped(self, tag_name, deprecated_tag_name=None):
         skip_check = False
         try:
             check_tag = tag_name
             deprecated_tag = deprecated_tag_name
-            tags = resource_data.get('tags', {})
-            if tags.get(deprecated_tag) is not None:
+            tags = self.tags or {}
+            if tags.get(deprecated_tag):
                 message = ('The tag "{}" is deprecated. '
-                           'Please use "{}". Resource: {}').format(deprecated_tag, check_tag, resource_name)
+                           'Please use "{}". Resource: {}').format(deprecated_tag, check_tag, self.name)
                 warnings.warn(message, PendingDeprecationWarning)
                 check_tag = deprecated_tag
             skip_check = tags.get(check_tag, False)
         except IndexError:
             self._logger.error(('Weird error with no or broken resources '
-                                'found %s for resource %s' % resource_data, resource_name))
+                                'found %s for resource %s' % self.data, self.name))
         except AttributeError:
-            self._logger.exception('Multiple tags entry found on resource %s', resource_name)
+            self._logger.exception('Multiple tags entry found on resource %s', self.name)
         return skip_check
 
-    def _validate_positioning(self, resource_type, resource):
-        if resource:
-            for resource_name, resource_data in resource.items():
-                self._logger.debug('Found resource %s', resource_name)
-                if self._is_check_skipped(resource_name, resource_data, 'skip-positioning', 'skip_positioning'):
-                    self._logger.warning('Skipping resource %s positioning checking '
-                                         'due to user overriding tag.', resource_name)
-                else:
-                    full_desired_filename = self._get_entity_desired_filename(resource_type)
-                    desired_filename, _, _ = full_desired_filename.rpartition('.tf')
-                    file_name, _, _ = self.filename.rpartition('.')
-                    if not re.match(desired_filename, file_name):
-                        self.errors.append(FilenameError(self.filename, resource_name, full_desired_filename))
-                        self._logger.error('Filename positioning not followed on file %s for resource '
-                                           '%s. Should be in a file matching %s.tf .',
-                                           self.filename,
-                                           resource_name,
-                                           desired_filename)
+    def _validate_positioning(self):
+        self._logger.debug('Resource name %s', self.name)
+        if self._is_check_skipped('skip-positioning', 'skip_positioning'):
+            self._logger.warning('Skipping resource %s positioning checking '
+                                 'due to user overriding tag.', self.name)
+        else:
+            full_desired_filename = self._get_entity_desired_filename(self.type)
+            desired_filename, _, _ = full_desired_filename.rpartition('.tf')
+            file_name, _, _ = self.filename.rpartition('.')
+            if not re.match(desired_filename, file_name):
+                self.errors.append(FilenameError(self.filename, self.name, full_desired_filename))
+                self._logger.error('Filename positioning not followed on file %s for resource '
+                                   '%s. Should be in a file matching %s.tf .',
+                                   self.filename,
+                                   self.name,
+                                   desired_filename)
         return True
 
-    def _validate_naming(self, resource_type, resource):
-        if resource:
-            for resource_name, resource_data in resource.items():
-                self._logger.debug('Found resource %s', resource_name)
-                if self._is_check_skipped(resource_name, resource_data, 'skip-linting', 'skip_linting'):
-                    self._logger.warning('Skipping resource %s naming checking '
-                                         'due to user overriding tag.', resource_name)
-                else:
-                    rule = self.rules_set.get_rule_for_resource(resource_type)
-                    if rule:
-                        self._logger.debug('Found matching rule "%s"', rule.regex)
-                        rule.validate(resource_name, resource_data)
-                        for error in rule.errors:
-                            self._logger.error('Naming convention not followed on file %s for resource '
-                                               '%s with type %s. Regex not matched :%s. Value :%s',
-                                               self.filename,
-                                               error.entity,
-                                               error.field,
-                                               error.regex,
-                                               error.value)
-                            self.errors.append(ResourceError(self.filename, resource_name, *error))
-                    else:
-                        self._logger.debug('No matching rule found')
+    def _validate_naming(self):
+        self._logger.debug('Resource name %s', self.name)
+        if self._is_check_skipped('skip-linting', 'skip_linting'):
+            self._logger.warning('Skipping resource %s naming checking '
+                                 'due to user overriding tag.', self.name)
+        else:
+            rule = self.rules_set.get_rule_for_resource(self.type)
+            if rule:
+                self._logger.debug('Found matching rule "%s"', rule.regex)
+                rule.validate(self.type, self.name, self.data, self.original_data)
+                for error in rule.errors:
+                    self._logger.error('Naming convention not followed on file %s for resource '
+                                       '%s with type %s. Regex not matched :%s. Value :%s',
+                                       self.filename,
+                                       error.entity,
+                                       error.field,
+                                       error.regex,
+                                       error.value)
+                    self.errors.append(ResourceError(self.filename, *error))
+            else:
+                self._logger.debug('No matching rule found')
         return True
 
 
@@ -298,32 +481,34 @@ class Rule(object):
     def errors(self, error):
         self._errors.append(error)
 
-    def validate(self, resource_name, resource_data):
+    def validate(self, resource_type, resource_name, resource_data, original_data):
         """Validates the given resource based on the ruleset."""
         if not self.regex:
             return True
-        self._validate_name(resource_name)
-        self._validate_values(resource_name, resource_data)
+        self._validate_name(resource_type, resource_name)
+        self._validate_values(resource_type, resource_name, resource_data, original_data)
         return True if not self.errors else False
 
-    def _validate_name(self, resource_name):
+    def _validate_name(self, resource_type, resource_name):
         rule = re.compile(self.regex)
         if not re.match(rule, resource_name):
-            self.errors = RuleError(resource_name, 'id', self.regex, resource_name)
+            self.errors = RuleError(resource_type, resource_name, 'id', self.regex, resource_name, None)
 
-    def _validate_values(self, resource_name, resource_data):
+    def _validate_values(self, resource_type, resource_name, resource_data, original_data):
         for field in self.data.get('fields', []):
             regex = field.get('regex')
             if not regex:
                 continue
             rule = re.compile(regex)
-            value = self._get_value_from_resource(resource_data,
-                                                  field.get('value'))
+            original_value = self._get_value_from_resource(original_data, field.get('value'))
+            value = self._get_value_from_resource(resource_data, field.get('value'))
+            original_value = original_value if original_value != value else None
+            rule_arguments = [resource_type, resource_name, field.get('value'), regex, value, original_value]
             try:
                 if not re.match(rule, value):
-                    self.errors = RuleError(resource_name, field.get('value'), regex, value)
+                    self.errors = RuleError(*rule_arguments)
             except TypeError:
-                self._logger.error('Error matching for regex, values passed were, rule:%s value:%s', rule, value)
+                self._logger.error('Error matching for regex, values passed were, rule:%s value:%s', regex, value)
 
     def _get_value_from_resource(self, resource, value):
         path = value.split('.') or [value]

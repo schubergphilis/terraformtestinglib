@@ -65,6 +65,9 @@ class TestTerraformtestinglib(unittest.BetamaxTestCase):
         self.fixtures = os.path.join(current_dir, 'fixtures')
         self.stack_path = os.path.join(self.fixtures, 'stack')
         self.naming_file = os.path.join(self.fixtures, 'naming.yaml')
+        self.interpolated_naming_file = os.path.join(self.fixtures, 'interpolated_naming.yaml')
+        self.count_interpolated_naming_file = os.path.join(self.fixtures, 'count_interpolated_naming.yaml')
+        self.globals_file = os.path.join(self.stack_path, 'global.tfvars')
         self.broken_schema_naming_file = os.path.join(self.fixtures, 'broken_schema_naming.yaml')
         self.broken_yaml_naming_file = os.path.join(self.fixtures, 'broken_yaml_naming.yaml')
         self.positioning_file = os.path.join(self.fixtures, 'positioning.yaml')
@@ -83,25 +86,25 @@ class TestTerraformtestinglib(unittest.BetamaxTestCase):
         self.assertRaises(InvalidPositioning, Stack, self.stack_path, self.naming_file, 'random/path')
         self.assertRaises(InvalidPositioning, Stack, self.stack_path, self.naming_file, self.broken_schema_positioning_file)
         self.assertRaises(InvalidPositioning, Stack, self.stack_path, self.naming_file, self.broken_yaml_positioning_file)
-        stack = Stack(self.stack_path, self.naming_file)
+        stack = Stack(self.stack_path, self.naming_file, None, self.globals_file)
         assert isinstance(stack, Stack)
         stack.validate()
 
     def test_global_positioning_skip(self):
         os.environ['SKIP_POSITIONING'] = "true"
-        stack = Stack(self.stack_path, self.naming_file, self.positioning_file)
+        stack = Stack(self.stack_path, self.naming_file, self.positioning_file, self.globals_file)
         stack.validate()
         for error in stack.errors:
             assert not isinstance(error, FilenameError)
         del os.environ['SKIP_POSITIONING']
 
     def test_positioning_errors(self):
-        stack = Stack(self.stack_path, self.naming_file, self.positioning_file)
+        stack = Stack(self.stack_path, self.naming_file, self.positioning_file, self.globals_file)
         stack.validate()
         assert len([error for error in stack.errors if isinstance(error, FilenameError)]) == 2
 
     def test_naming_errors(self):
-        stack = Stack(self.stack_path, self.naming_file, self.positioning_file)
+        stack = Stack(self.stack_path, self.naming_file, self.positioning_file, self.globals_file)
         stack.validate()
         assert len([error for error in stack.errors if isinstance(error, ResourceError)]) == 4
 
@@ -109,17 +112,28 @@ class TestTerraformtestinglib(unittest.BetamaxTestCase):
         with warnings.catch_warnings(record=True) as warnings_:
             # Cause all warnings to always be triggered.
             warnings.simplefilter("always")
-            self.stack = Stack(self.stack_path, self.naming_file, self.positioning_file)
+            self.stack = Stack(self.stack_path, self.naming_file, self.positioning_file, self.globals_file)
             self.stack.validate()
             assert len(warnings_) == 3
             for warning_ in warnings_:
                 assert issubclass(warning_.category, PendingDeprecationWarning)
 
     def test_error_messages(self):
-        stack = Stack(self.stack_path, self.naming_file, self.positioning_file)
+        stack = Stack(self.stack_path, self.naming_file, self.positioning_file, self.globals_file)
         stack.validate()
         for error in stack.errors:
             assert 'not followed on file' in str(error)
+
+    def test_variable_interpolation(self):
+        stack = Stack(self.stack_path, self.interpolated_naming_file, None, self.globals_file)
+        stack.validate()
+        for error in stack.errors:
+            assert 'test_interpolated_value' in str(error)
+
+    def test_count_interpolation(self):
+        stack = Stack(self.stack_path, self.count_interpolated_naming_file, None, self.globals_file)
+        stack.validate()
+        assert len(stack.errors) == 4
 
     def tearDown(self):
         """
