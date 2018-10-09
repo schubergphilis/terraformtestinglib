@@ -226,7 +226,47 @@ class HclView(object):
                 if resource.startswith(resource_name)]
 
 
-class Stack(object):
+class Parser(object):  # pylint: disable=too-few-public-methods
+    """Manages the parsing of terraform files and creating the global hcl view from them"""
+
+    def __init__(self, configuration_path, global_variables_file_path=None):
+        logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
+        self._logger = logging.getLogger(logger_name)
+        file_resources, hcl_resources = self._parse_path(configuration_path)
+        self.hcl_view = HclView(file_resources, self._get_global_variables(global_variables_file_path))
+        self.file_resources = file_resources
+        self.hcl_resources = hcl_resources
+
+    def _get_global_variables(self, global_variables_file):
+        if not global_variables_file:
+            return {}
+        try:
+            global_variables_file_path = os.path.expanduser(global_variables_file)
+            global_variables = hcl.load(open(global_variables_file_path, 'r'))
+        except ValueError:
+            self._logger.warning('Could not parse %s for resources', global_variables_file)
+            global_variables = {}
+        return global_variables
+
+    def _parse_path(self, path):
+        hcl_resources = []
+        file_resources = []
+        path = os.path.expanduser(os.path.join(path, '*.tf'))
+        for tf_file_path in glob.glob(path):
+            _, _, filename = tf_file_path.rpartition(os.path.sep)
+            try:
+                self._logger.debug('Trying to load file :%s', tf_file_path)
+                data = hcl.load(open(tf_file_path, 'r'))
+                file_resources.append(data)
+                for resource_type, resource in data.get('resource', {}).items():
+                    for resource_name, resource_data in resource.items():
+                        hcl_resources.append(HclFileResource(filename, resource_type, resource_name, resource_data))
+            except ValueError:
+                self._logger.debug('Could not parse %s for resources', filename)
+        return file_resources, hcl_resources
+
+
+class Stack(Parser):
     """Manages a stack as a collection of resources that can be checked for name convention"""
 
     def __init__(self,  # pylint: disable=too-many-arguments
@@ -235,13 +275,14 @@ class Stack(object):
                  positioning_file_path=None,
                  global_variables_file_path=None,
                  file_to_skip_for_positioning=None):
+        super(Stack, self).__init__(configuration_path, global_variables_file_path)
         logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
         self._logger = logging.getLogger(logger_name)
         self.path = configuration_path
         self.rules_set = self._get_naming_rules(naming_file_path)
         self.positioning = self._get_positioning_rules(positioning_file_path)
         self.positioning_skip_file = file_to_skip_for_positioning
-        self.resources, self.hcl_view = self._instantiate(global_variables_file_path)
+        self.resources = self._get_resources()
         self._errors = []
 
     @staticmethod
@@ -274,43 +315,12 @@ class Stack(object):
             raise InvalidPositioning(error)
         return positioning
 
-    def _get_global_variables(self, global_variables_file):
-        if not global_variables_file:
-            return {}
-        try:
-            global_variables_file_path = os.path.expanduser(global_variables_file)
-            global_variables = hcl.load(open(global_variables_file_path, 'r'))
-        except ValueError:
-            self._logger.warning('Could not parse %s for resources', global_variables_file)
-            global_variables = {}
-        return global_variables
-
-    def _instantiate(self, global_variables_file_path):
+    def _get_resources(self):
         resources = []
-        file_resources = []
-        global_variables = self._get_global_variables(global_variables_file_path)
-        path = os.path.expanduser(os.path.join(self.path, '*.tf'))
-        for tf_file_path in glob.glob(path):
-            _, _, filename = tf_file_path.rpartition(os.path.sep)
-            try:
-                self._logger.debug('Trying to load file :%s', tf_file_path)
-                data = hcl.load(open(tf_file_path, 'r'))
-                file_resources.append(data)
-                for resource_type, resource in data.get('resource', {}).items():
-                    for resource_name, resource_data in resource.items():
-                        resources.append(HclFileResource(filename, resource_type, resource_name, resource_data))
-            except ValueError:
-                self._logger.debug('Could not parse %s for resources', filename)
-        return self._instantiate_resources(file_resources, resources, global_variables)
-
-    def _instantiate_resources(self, file_resources, hcl_resources, global_variables):
-        hcl_view = HclView(file_resources, global_variables)
-        resources = []
-        for hcl_resource in hcl_resources:
-            count = hcl_resource.data.get('count')
-            if count:
-                for data in hcl_view.get_counter_resource_data_by_type(hcl_resource.resource_type,
-                                                                       hcl_resource.resource_name):
+        for hcl_resource in self.hcl_resources:
+            if hcl_resource.data.get('count'):
+                for data in self.hcl_view.get_counter_resource_data_by_type(hcl_resource.resource_type,
+                                                                            hcl_resource.resource_name):
                     resources.append(self._instantiate_resource(hcl_resource.filename,
                                                                 hcl_resource.resource_type,
                                                                 hcl_resource.resource_name,
@@ -320,11 +330,11 @@ class Stack(object):
                 resources.append(self._instantiate_resource(hcl_resource.filename,
                                                             hcl_resource.resource_type,
                                                             hcl_resource.resource_name,
-                                                            hcl_view.get_resource_data_by_type(
+                                                            self.hcl_view.get_resource_data_by_type(
                                                                 hcl_resource.resource_type,
                                                                 hcl_resource.resource_name),
                                                             hcl_resource.data))
-        return resources, hcl_view
+        return resources
 
     def _instantiate_resource(self, filename, resource_type, name, data, original_data):  # pylint: disable=too-many-arguments
         resource = LintingResource(filename, resource_type, name, data, original_data)
