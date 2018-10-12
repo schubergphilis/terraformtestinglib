@@ -24,18 +24,15 @@
 #
 
 """
-terraformtestinglib package
+terraformtestinglib.testing package
 
-Import all parts from terraformtestinglib here
+Import all parts from terraformtestinglib.testing here
 
 .. _Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 """
 
-from ._version import __version__
-from .linting import Stack
 from .testing import Validator
-from .terraformtestinglibexceptions import InvalidNaming, InvalidPositioning
 
 __author__ = '''Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>'''
 __docformat__ = '''google'''
@@ -46,13 +43,4 @@ __maintainer__ = '''Costas Tyfoxylos'''
 __email__ = '''<ctyfoxylos@schubergphilis.com>'''
 __status__ = '''Development'''  # "Prototype", "Development", "Production".
 
-# This is to 'use' the module(s), so lint doesn't complain
-assert __version__
-
-# assert objects
-assert Stack
 assert Validator
-
-# assert exceptions
-assert InvalidPositioning
-assert InvalidNaming

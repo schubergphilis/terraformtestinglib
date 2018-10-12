@@ -40,7 +40,7 @@ from betamax.fixtures import unittest
 from terraformtestinglib import Stack
 from terraformtestinglib.terraformtestinglibexceptions import InvalidNaming, InvalidPositioning
 from terraformtestinglib.configuration import is_valid_regex
-from terraformtestinglib.errortypes import  ResourceError, FilenameError
+from terraformtestinglib.utils import  ResourceError, FilenameError
 
 __author__ = '''Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>'''
 __docformat__ = '''google'''
