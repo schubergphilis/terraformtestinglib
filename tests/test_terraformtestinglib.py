@@ -36,11 +36,12 @@ Tests for `terraformtestinglib` module.
 import warnings
 import os
 
-from betamax.fixtures import unittest
-from terraformtestinglib import Stack
+import unittest
+from terraformtestinglib import Stack, Validator
+from terraformtestinglib.terraformtestinglib import HclView
 from terraformtestinglib.terraformtestinglibexceptions import InvalidNaming, InvalidPositioning
 from terraformtestinglib.configuration import is_valid_regex
-from terraformtestinglib.utils import  ResourceError, FilenameError
+from terraformtestinglib.utils import ResourceError, FilenameError
 
 __author__ = '''Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>'''
 __docformat__ = '''google'''
@@ -53,7 +54,7 @@ __email__ = '''<ctyfoxylos@schubergphilis.com>'''
 __status__ = '''Development'''  # "Prototype", "Development", "Production".
 
 
-class TestTerraformtestinglib(unittest.BetamaxTestCase):
+class TestLintingFeatures(unittest.TestCase):
 
     def setUp(self):
         """
@@ -62,7 +63,7 @@ class TestTerraformtestinglib(unittest.BetamaxTestCase):
         This is where you can setup things that you use throughout the tests. This method is called before every test.
         """
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        self.fixtures = os.path.join(current_dir, 'fixtures')
+        self.fixtures = os.path.join(current_dir, 'fixtures', 'linting')
         self.stack_path = os.path.join(self.fixtures, 'stack')
         self.naming_file = os.path.join(self.fixtures, 'naming.yaml')
         self.interpolated_naming_file = os.path.join(self.fixtures, 'interpolated_naming.yaml')
@@ -142,3 +143,39 @@ class TestTerraformtestinglib(unittest.BetamaxTestCase):
         This is where you should tear down what you've setup in setUp before. This method is called after every test.
         """
         pass
+
+
+class TestParsingFeatures(unittest.TestCase):
+
+    def setUp(self):
+        """
+        Test set up
+
+        This is where you can setup things that you use throughout the tests. This method is called before every test.
+        """
+        self.default_resources = [{'resource': {'aws_instance': {'foo': {'value2': 2, 'value': 1},
+                                                                 'bar': {'value2': 2, 'value': 1}}}},
+                                  {'resource': {'aws_instance': {'foo2': {'value3': 3, 'value4': 4},
+                                                                 'bar2': {'value3': 3, 'value4': 4}}}}]
+        self.default_global_variables = {'spam': 'eggs',
+                                         'parrot': 'blah',
+                                         'dict_var': {'aha': '!',
+                                                      'more': '!!'},
+                                         'list_var': ['one', 'two', 'three?']}
+
+        self.hcl_view = HclView(self.default_resources, self.default_global_variables)
+
+    def test_resource_parsing(self):
+        assert len(self.hcl_view.resources.get('aws_instance').keys()) == 4
+
+    def test_resource_exists(self):
+        assert self.hcl_view.resources.get('aws_instance').get('bar2') == {'value4': 4, 'value3': 3}
+
+    def test_simple_variable_interpolation(self):
+        assert self.hcl_view.get_variable_value('${var.parrot}') == 'blah'
+
+    def test_dict_variable_interpolation(self):
+        assert self.hcl_view.get_variable_value('${var.dict_var["aha"]}') == '!'
+
+    def test_list_variable_interpolation(self):
+        assert self.hcl_view.get_variable_value('${var.list_var[1]}') == 'two'
