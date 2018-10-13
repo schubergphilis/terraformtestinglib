@@ -72,8 +72,8 @@ def assert_on_error(func):
 class Validator(Parser):
     """Object exposing resources and variables of terraform plans"""
 
-    def __init__(self, configuration_path, global_variables_file_path=None):
-        super(Validator, self).__init__(configuration_path, global_variables_file_path)
+    def __init__(self, configuration_path, global_variables_file_path=None, raise_on_missing_variable=True):
+        super(Validator, self).__init__(configuration_path, global_variables_file_path, raise_on_missing_variable)
         logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
         self._logger = logging.getLogger(logger_name)
         self.error_on_missing_attribute = False
@@ -633,7 +633,7 @@ class AttributeList(object):
         attributes = self.validator.to_list(attributes)
         for attribute in self.attributes:
             for required_property_name in attributes:
-                if required_property_name in attribute.keys():
+                if required_property_name in attribute.value.keys():
                     errors.append("[{0}.{1}.{2}] should not have attribute: '{3}'".format(attribute.resource_type,
                                                                                           attribute.resource_name,
                                                                                           attribute.name,

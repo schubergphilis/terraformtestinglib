@@ -48,3 +48,7 @@ class InvalidNaming(Exception):
 
 class InvalidPositioning(Exception):
     """The structure file provided was invalid"""
+
+
+class MissingVariable(Exception):
+    """The variable is missing"""

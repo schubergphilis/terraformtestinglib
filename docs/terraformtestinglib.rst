@@ -1,6 +1,15 @@
 terraformtestinglib package
 ===========================
 
+Subpackages
+-----------
+
+.. toctree::
+
+    terraformtestinglib.linting
+    terraformtestinglib.testing
+    terraformtestinglib.utils
+
 Submodules
 ----------
 
@@ -8,14 +17,6 @@ terraformtestinglib.configuration module
 ----------------------------------------
 
 .. automodule:: terraformtestinglib.configuration
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-terraformtestinglib.errortypes module
--------------------------------------
-
-.. automodule:: terraformtestinglib.errortypes
     :members:
     :undoc-members:
     :show-inheritance:

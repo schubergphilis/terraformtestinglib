@@ -35,7 +35,7 @@ Import all parts from terraformtestinglib here
 from ._version import __version__
 from .linting import Stack
 from .testing import Validator
-from .terraformtestinglibexceptions import InvalidNaming, InvalidPositioning
+from .terraformtestinglibexceptions import InvalidNaming, InvalidPositioning, MissingVariable
 
 __author__ = '''Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>'''
 __docformat__ = '''google'''
@@ -56,3 +56,4 @@ assert Validator
 # assert exceptions
 assert InvalidPositioning
 assert InvalidNaming
+assert MissingVariable

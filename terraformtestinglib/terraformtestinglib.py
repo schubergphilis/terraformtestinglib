@@ -44,6 +44,7 @@ from collections import namedtuple
 import hcl
 from colorama import init
 
+from terraformtestinglibexceptions import MissingVariable  # pylint: disable=relative-import
 from .utils import RecursiveDictionary
 
 __author__ = '''Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>'''
@@ -82,10 +83,11 @@ HclFileResource = namedtuple('HclFileResource', ('filename', 'resource_type', 'r
 class HclView(object):
     """Object representing the global view of hcl resources along with any global variables"""
 
-    def __init__(self, hcl_resources, global_variables=None):
+    def __init__(self, hcl_resources, global_variables=None, raise_on_missing_variable=True):
         logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
         self._logger = logging.getLogger(logger_name)
         self.state = RecursiveDictionary()
+        self._raise_on_missing_variable = raise_on_missing_variable
         if global_variables and isinstance(global_variables, dict):
             self.state.update({'variable': global_variables})
         for hcl_resource in hcl_resources:
@@ -161,30 +163,61 @@ class HclView(object):
                 value = self._interpolate_format(value)
         return value
 
-    def get_variable_value(self, value):
-        """Retrieves the value of a variable from the global view of variables"""
-        if value.startswith('${var.'):
-            variable_name = value.split('var.')[1].split('}')[0]
+    def get_variable_value(self, variable):
+        """Retrieves the value of a variable from the global view of variables
+
+        Args:
+            variable (): The variable to look for
+
+        Raises:
+            MissingValue : If the value does not exist
+
+        Returns:
+
+        """
+        initial_value = variable
+        if variable.startswith('${var.'):
+            variable_name = variable.split('var.')[1].split('}')[0]
             match = re.search(r'\[.*\]', variable_name)  # look for '[' ending in ']' pattern
             if match:
                 name = variable_name.split('[')[0]
-                value = self.state.get('variable', {}).get(name, value)
-                if isinstance(value, dict):
+                variable = self.state.get('variable', {}).get(name, variable)
+                if isinstance(variable, dict):
                     key = literal_eval(match.group(0))[0]
-                    value = value.get(key)
-                elif isinstance(value, list):
+                    variable = variable.get(key)
+                elif isinstance(variable, list):
                     index = literal_eval(match.group(0))[0]
-                    value = value[index]
+                    variable = variable[index]
             else:
-                value = self.state.get('variable', {}).get(variable_name, value)
-        return value
+                variable = self.state.get('variable', {}).get(variable_name, variable)
+        if variable == initial_value and self._raise_on_missing_variable:
+            raise MissingVariable(initial_value)
+        return variable
 
     def get_resource_data_by_type(self, resource_type, resource_name):
-        """Retrieves the data of a resource from the global hcl state based on its type."""
+        """Retrieves the data of a resource from the global hcl state based on its type.
+
+        Args:
+            resource_type (basestring): The resource type to retrieve the data for
+            resource_name (basestring): The resource name to retrieve the data for
+
+        Returns:
+            Interpolated data (dict) for the provided resource name and resource type
+
+        """
         return self.resources.get(resource_type, {}).get(resource_name)
 
     def get_counter_resource_data_by_type(self, resource_type, resource_name):  # pylint: disable=invalid-name
-        """Retrieves the data of a resource from the global hcl state based on its type that has a count."""
+        """Retrieves the data of a resource from the global hcl state based on its type that has a count.
+
+        Args:
+            resource_type (basestring): The resource type to retrieve the data for
+            resource_name (basestring): The resource name to retrieve the data for
+
+        Returns:
+            Original non interpolated data (dict) for the provided resource name and resource type
+
+        """
         return [data for resource, data in self.resources.get(resource_type, {}).items()
                 if resource.startswith(resource_name)]
 
@@ -192,11 +225,13 @@ class HclView(object):
 class Parser(object):  # pylint: disable=too-few-public-methods
     """Manages the parsing of terraform files and creating the global hcl view from them"""
 
-    def __init__(self, configuration_path, global_variables_file_path=None):
+    def __init__(self, configuration_path, global_variables_file_path=None, raise_on_missing_variable=True):
         logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
         self._logger = logging.getLogger(logger_name)
         file_resources, hcl_resources = self._parse_path(configuration_path)
-        self.hcl_view = HclView(file_resources, self._get_global_variables(global_variables_file_path))
+        self.hcl_view = HclView(file_resources,
+                                self._get_global_variables(global_variables_file_path),
+                                raise_on_missing_variable)
         self.file_resources = file_resources
         self.hcl_resources = hcl_resources
 

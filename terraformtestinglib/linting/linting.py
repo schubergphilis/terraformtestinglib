@@ -69,8 +69,9 @@ class Stack(Parser):
                  naming_file_path,
                  positioning_file_path=None,
                  global_variables_file_path=None,
-                 file_to_skip_for_positioning=None):
-        super(Stack, self).__init__(configuration_path, global_variables_file_path)
+                 file_to_skip_for_positioning=None,
+                 raise_on_missing_variable=True):
+        super(Stack, self).__init__(configuration_path, global_variables_file_path, raise_on_missing_variable)
         logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
         self._logger = logging.getLogger(logger_name)
         self.path = configuration_path
@@ -141,7 +142,12 @@ class Stack(Parser):
         return resource
 
     def validate(self):
-        """Validates all the resources of the stack"""
+        """Validates all the resources of the stack
+
+        Returns:
+            None
+
+        """
         self._errors = []
         for resource in self.resources:
             resource.validate()
@@ -150,7 +156,12 @@ class Stack(Parser):
 
     @property
     def errors(self):
-        """The errors of the validation of the resources of the stack"""
+        """The errors of the validation of the resources of the stack
+
+        Returns:
+            errors (ResourceError|FilenameError) : list of possible linting errors
+
+        """
         return self._errors
 
 
@@ -173,11 +184,27 @@ class LintingResource(object):  # pylint: disable=too-many-instance-attributes
         return self.data.get(value)
 
     def register_rules_set(self, rules_set):
-        """Registers the set of rules with the Resource."""
+        """Registers the set of rules with the Resource.
+
+        Args:
+            rules_set (dict): A dictionary with the rules for the naming convention
+
+        Returns:
+            None
+
+        """
         self.rules_set = rules_set
 
     def register_positioning_set(self, positioning_set):
-        """Registers the set of rules with the Resource."""
+        """Registers the set of rules with the Resource.
+
+        Args:
+            positioning_set (dict): A dictionary with the rules for the positioning convention
+
+        Returns:
+            None
+
+        """
         self.positioning_set = positioning_set
 
     def _get_entity_desired_filename(self, entity):
@@ -186,7 +213,12 @@ class LintingResource(object):  # pylint: disable=too-many-instance-attributes
         return target
 
     def validate(self):
-        """Validates the resource according to the appropriate rule."""
+        """Validates the resource according to the appropriate rule.
+
+        Returns:
+            True upon completion
+
+        """
         self.errors = []
         validate_positioning = True
         if not self.rules_set:
@@ -274,7 +306,15 @@ class RuleSet(object):  # pylint: disable=too-few-public-methods
         self._rules = rules
 
     def get_rule_for_resource(self, resource_name):
-        """Retrieves the rule for the resource name"""
+        """Retrieves the rule for the resource name
+
+        Args:
+            resource_name (basestring): The resource type to retrieve the rule for
+
+        Returns:
+            The rule corresponding with the resource type if found, None otherwise
+
+        """
         return next((Rule(rule) for rule in self._rules
                      if rule.get('resource') == resource_name), None)
 
@@ -291,7 +331,11 @@ class Rule(object):
 
     @property
     def errors(self):
-        """List of errors found"""
+        """List of errors found
+
+        Returns: The errors found
+
+        """
         return self._errors
 
     @errors.setter
@@ -299,7 +343,18 @@ class Rule(object):
         self._errors.append(error)
 
     def validate(self, resource_type, resource_name, resource_data, original_data):
-        """Validates the given resource based on the ruleset."""
+        """Validates the given resource based on the ruleset.
+
+        Args:
+            resource_type (basestring): The type of the resource
+            resource_name (basestring): The name of the resource
+            resource_data (dict): The interpolated data of the resource
+            original_data (dict): The origininal data of the resource, before the interpolation
+
+        Returns:
+            True on successful validation, False otherwise
+
+        """
         if not self.regex:
             return True
         self._validate_name(resource_type, resource_name)
