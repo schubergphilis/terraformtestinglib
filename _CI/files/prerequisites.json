@@ -5,5 +5,7 @@
         "make"
     ],
     "environment_variables": [
+        "PYPI_UPLOAD_USER",
+        "PYPI_UPLOAD_PASSWORD"
     ]
 }

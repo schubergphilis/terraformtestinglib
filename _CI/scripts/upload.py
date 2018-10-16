@@ -22,7 +22,7 @@
 #  DEALINGS IN THE SOFTWARE.
 #
 
-
+import os
 import logging
 from build import build
 from library import execute_command
@@ -38,8 +38,11 @@ def upload():
     if not emojize:
         LOGGER.error('Errors caught on building the artifact, bailing out...')
         raise SystemExit(1)
+    username = os.environ.get('PYPI_UPLOAD_USER')
+    password = os.environ.get('PYPI_UPLOAD_PASSWORD')
     upload_command = ('twine upload dist/* '
-                      '-u ${PYPI_UPLOAD_USER} '
+                      f'-u {username} '
+                      f'-p {password} '
                       '--skip-existing '
                       '--repository-url https://upload.pypi.org/legacy/')
     LOGGER.info('Trying to upload built artifact...')

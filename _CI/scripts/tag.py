@@ -47,7 +47,9 @@ def check_branch():
 
 def push():
     git = Git()
-    current_version = open('.VERSION', 'r').read()
+    with open('.VERSION', 'r') as version_file:
+        current_version = version_file.read()
+        version_file.close()
     git.commit('Set version to {}'.format(current_version), '.VERSION')
     git.tag(current_version)
     git.push()
