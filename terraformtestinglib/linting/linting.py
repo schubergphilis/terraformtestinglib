@@ -85,7 +85,9 @@ class Stack(Parser):
     def _get_naming_rules(rules_file):
         try:
             rules_path_file = os.path.expanduser(rules_file)
-            rules = yaml.load(open(rules_path_file, 'r').read())
+            with open(rules_path_file, 'r') as rules_file_handle:
+                rules = yaml.load(rules_file_handle.read())
+                rules_file_handle.close()
             rules = NAMING_SCHEMA.validate(rules)
         except IOError:
             raise InvalidNaming('Could not load naming file')
@@ -101,7 +103,9 @@ class Stack(Parser):
             return None
         try:
             positioning_path_file = os.path.expanduser(positioning_file)
-            positioning = yaml.load(open(positioning_path_file, 'r').read())
+            with open(positioning_path_file, 'r') as positioning_file_handle:
+                positioning = yaml.load(positioning_file_handle.read())
+                positioning_file_handle.close()
             positioning = POSITIONING_SCHEMA.validate(positioning)
         except IOError:
             raise InvalidPositioning('Could not load positioning file')
@@ -165,7 +169,7 @@ class Stack(Parser):
         return self._errors
 
 
-class LintingResource(object):  # pylint: disable=too-many-instance-attributes
+class LintingResource:  # pylint: disable=too-many-instance-attributes
     """Manages a resource and provides validation capabilities."""
 
     def __init__(self, filename, resource_type, name, data, original_data):  # pylint: disable=too-many-arguments
@@ -299,7 +303,7 @@ class LintingResource(object):  # pylint: disable=too-many-instance-attributes
         return True
 
 
-class RuleSet(object):  # pylint: disable=too-few-public-methods
+class RuleSet:  # pylint: disable=too-few-public-methods
     """Manages the rules as a group and can search them by name."""
 
     def __init__(self, rules):
@@ -319,7 +323,7 @@ class RuleSet(object):  # pylint: disable=too-few-public-methods
                      if rule.get('resource') == resource_name), None)
 
 
-class Rule(object):
+class Rule:
     """Handles the rule object providing validation capabilities."""
 
     def __init__(self, data):

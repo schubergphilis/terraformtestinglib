@@ -44,7 +44,7 @@ from collections import namedtuple
 import hcl
 from colorama import init
 
-from terraformtestinglibexceptions import MissingVariable  # pylint: disable=relative-import
+from .terraformtestinglibexceptions import MissingVariable
 from .utils import RecursiveDictionary
 
 __author__ = '''Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>'''
@@ -63,7 +63,7 @@ LOGGER = logging.getLogger(LOGGER_BASENAME)
 LOGGER.addHandler(logging.NullHandler())
 
 
-def warning_on_one_line(message, category, *rest_args):  # pylint: disable=unused-argument
+def warning_on_one_line(message, category, filename, lineno, line=None):  # pylint: disable=unused-argument
     """Warning formating method"""
     return '\n\n%s:%s\n\n' % (category.__name__, message)
 
@@ -80,7 +80,7 @@ else:
 HclFileResource = namedtuple('HclFileResource', ('filename', 'resource_type', 'resource_name', 'data'))
 
 
-class HclView(object):
+class HclView:
     """Object representing the global view of hcl resources along with any global variables"""
 
     def __init__(self, hcl_resources, global_variables=None, raise_on_missing_variable=True):
@@ -106,39 +106,44 @@ class HclView(object):
         return data
 
     def _interpolate_state(self, state):
-        for _, resources_entries in state.items():
+        output = {}
+        for resources_type, resources_entries in state.items():
+            entry = {}
             for resource_name, resource_data in resources_entries.items():
                 counter = resource_data.get('count')
                 if counter:
-                    del resources_entries[resource_name]
-                    del resource_data['count']
                     for number in range(counter):
                         name = resource_name + '.{}'.format(number)
                         data = self._interpolate_counter(copy.deepcopy(resource_data), str(number))
-                        resources_entries[name] = data
-        state = self._interpolate_value(state)
+                        entry[name] = data
+                else:
+                    entry[resource_name] = resource_data
+            output[resources_type] = entry
+        state = self._interpolate_value(output)
         return state
 
     def _interpolate_value(self, data):
+        output = {}
         for key, value in data.items():
-            if isinstance(key, basestring):
+            if isinstance(key, str):
                 key = self._interpolate_variable(key)
-            if isinstance(value, basestring):
+            if isinstance(value, str):
                 value = self._interpolate_variable(value)
             elif isinstance(value, dict):
                 value = self._interpolate_value(value)
-            data[key] = value
-        return data
+            output[key] = value
+        return output
 
     def _interpolate_counter(self, data, number):
+        output = {}
         for key, value in data.items():
             key = key.replace('count.index', number)
-            if isinstance(value, basestring):
+            if isinstance(value, str):
                 value = value.replace('count.index', number)
             if isinstance(value, dict):
                 value = self._interpolate_counter(value, number)
-            data[key] = value
-        return data
+            output[key] = value
+        return output
 
     @staticmethod
     def _interpolate_format(value):
@@ -207,7 +212,7 @@ class HclView(object):
         """
         return self.resources.get(resource_type, {}).get(resource_name)
 
-    def get_counter_resource_data_by_type(self, resource_type, resource_name):  # pylint: disable=invalid-name
+    def get_counter_resource_data_by_type(self, resource_type, resource_name):
         """Retrieves the data of a resource from the global hcl state based on its type that has a count.
 
         Args:
@@ -222,7 +227,7 @@ class HclView(object):
                 if resource.startswith(resource_name)]
 
 
-class Parser(object):  # pylint: disable=too-few-public-methods
+class Parser:  # pylint: disable=too-few-public-methods
     """Manages the parsing of terraform files and creating the global hcl view from them"""
 
     def __init__(self, configuration_path, global_variables_file_path=None, raise_on_missing_variable=True):
@@ -240,7 +245,8 @@ class Parser(object):  # pylint: disable=too-few-public-methods
             return {}
         try:
             global_variables_file_path = os.path.expanduser(global_variables_file)
-            global_variables = hcl.load(open(global_variables_file_path, 'r'))
+            with open(global_variables_file_path, 'r') as globals_file:
+                global_variables = hcl.load(globals_file)
         except ValueError:
             self._logger.warning('Could not parse %s for resources', global_variables_file)
             global_variables = {}
@@ -254,7 +260,8 @@ class Parser(object):  # pylint: disable=too-few-public-methods
             _, _, filename = tf_file_path.rpartition(os.path.sep)
             try:
                 self._logger.debug('Trying to load file :%s', tf_file_path)
-                data = hcl.load(open(tf_file_path, 'r'))
+                with open(tf_file_path, 'r') as terraform_file:
+                    data = hcl.load(terraform_file)
                 file_resources.append(data)
                 for resource_type, resource in data.get('resource', {}).items():
                     for resource_name, resource_data in resource.items():

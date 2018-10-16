@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# File: configuration.py
 #
 # Copyright 2018 Costas Tyfoxylos
 #
@@ -23,40 +22,38 @@
 #  DEALINGS IN THE SOFTWARE.
 #
 
-"""
-Main code for configuration
 
-.. _Google Python Style Guide:
-   http://google.github.io/styleguide/pyguide.html
+import os
+import logging
+from bootstrap import bootstrap
+from library import execute_command
 
-"""
-import re
-from schema import Schema, Optional, And
-
-__author__ = '''Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>'''
-__docformat__ = '''google'''
-__date__ = '''2018-05-24'''
-__copyright__ = '''Copyright 2018, Costas Tyfoxylos'''
-__credits__ = ["Costas Tyfoxylos"]
-__license__ = '''MIT'''
-__maintainer__ = '''Costas Tyfoxylos'''
-__email__ = '''<ctyfoxylos@schubergphilis.com>'''
-__status__ = '''Development'''  # "Prototype", "Development", "Production".
+# This is the main prefix used for logging
+LOGGER_BASENAME = '''_CI.graph'''
+LOGGER = logging.getLogger(LOGGER_BASENAME)
+LOGGER.addHandler(logging.NullHandler())
 
 
-def is_valid_regex(value):
-    """Validates a regex"""
-    try:
-        re.compile(value)
-        is_valid = True
-    except re.error:
-        is_valid = False
-    return is_valid
+def graph():
+    emojize = bootstrap()
+    os.chdir('graphs')
+    create_graph_command = ('pyreverse '
+                            '-o png '
+                            '-A '
+                            '-f PUB_ONLY '
+                            '-p graphs {}').format(os.path.join('..', 'terraformtestinglib'))
+    exit_code = execute_command(create_graph_command)
+    success = not exit_code
+    if success:
+        LOGGER.info('%s Successfully created graph images %s',
+                    emojize(':white_heavy_check_mark:'),
+                    emojize(':thumbs_up:'))
+    else:
+        LOGGER.error('%s Errors in creation of graph images found! %s',
+                     emojize(':cross_mark:'),
+                     emojize(':crying_face:'))
+    raise SystemExit(exit_code)
 
 
-NAMING_SCHEMA = Schema([{'resource': str,
-                         'regex': is_valid_regex,
-                         Optional('fields'): [{'value': str,
-                                               'regex': is_valid_regex}]}])
-
-POSITIONING_SCHEMA = Schema({And(str, lambda x: x.endswith('.tf')): [str]})
+if __name__ == '__main__':
+    graph()

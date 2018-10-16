@@ -136,7 +136,7 @@ class Validator(Parser):
         return value
 
 
-class ResourceList(object):
+class ResourceList:
     """A list of resource objects being capable to filter on specific requirements"""
 
     def __init__(self, validator_instance, resources):
@@ -340,7 +340,7 @@ class ResourceList(object):
                     resources.append(resource)
         return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
 
-    def if_has_attribute_with_regex_value(self, attribute, regex):  # pylint: disable=invalid-name
+    def if_has_attribute_with_regex_value(self, attribute, regex):
         """Filters the resources based on the provided attribute and value
 
         Args:
@@ -362,7 +362,7 @@ class ResourceList(object):
                     pass
         return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
 
-    def if_not_has_attribute_with_regex_value(self, attribute, regex):  # pylint: disable=invalid-name
+    def if_not_has_attribute_with_regex_value(self, attribute, regex):
         """Filters the resources based on the provided attribute and value
 
         Args:
@@ -442,7 +442,7 @@ class ResourceList(object):
                 pass
         return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
 
-    def if_not_has_subattribute_with_value(self, parent_attribute, attribute, value):  # pylint: disable=invalid-name
+    def if_not_has_subattribute_with_value(self, parent_attribute, attribute, value):
         """Filters the resources based on the provided parent and child attribute and value
 
         Args:
@@ -464,7 +464,7 @@ class ResourceList(object):
                 pass
         return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
 
-    def if_has_subattribute_with_regex_value(self, parent_attribute, attribute, regex):  # pylint: disable=invalid-name
+    def if_has_subattribute_with_regex_value(self, parent_attribute, attribute, regex):
         """Filters the resources based on the provided parent and child attribute and regex for value matching
 
         Args:
@@ -486,7 +486,7 @@ class ResourceList(object):
                 pass
         return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
 
-    def if_not_has_subattribute_with_regex_value(self, parent_attribute, attribute, regex):  # pylint: disable=invalid-name
+    def if_not_has_subattribute_with_regex_value(self, parent_attribute, attribute, regex):
         """Filters the resources based on the provided parent and child attribute and regex for value matching
 
         Args:
@@ -509,7 +509,7 @@ class ResourceList(object):
         return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
 
 
-class AttributeList(object):
+class AttributeList:
     """Object containing attribute objects and providing validation methods for them"""
 
     def __init__(self, validator, attributes):
@@ -691,7 +691,7 @@ class AttributeList(object):
         return None, errors
 
 
-class Variable(object):
+class Variable:
     """Models a variable and exposes basic test for it"""
 
     def __init__(self, name, value):
@@ -744,7 +744,7 @@ class Variable(object):
 Resource = namedtuple('Resource', ['type', 'name', 'data'])
 
 
-class Attribute(object):
+class Attribute:
     """Models the attribute"""
 
     def __init__(self, resource, name, value):

@@ -121,6 +121,9 @@ class TestLintingFeatures(unittest.TestCase):
             warnings.simplefilter("always")
             self.stack = Stack(self.stack_path, self.naming_file, self.positioning_file, self.globals_file)
             self.stack.validate()
+            for wa in warnings_:
+                print(wa.message)
+            print(warnings_)
             assert len(warnings_) == 3
             for warning_ in warnings_:
                 assert issubclass(warning_.category, PendingDeprecationWarning)

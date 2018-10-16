@@ -48,7 +48,7 @@ __status__ = '''Development'''  # "Prototype", "Development", "Production".
 RuleError = namedtuple('RuleError', ['resource_type', 'entity', 'field', 'regex', 'value', 'original_value'])
 
 
-class ResourceError(object):  # pylint: disable=too-few-public-methods
+class ResourceError:  # pylint: disable=too-few-public-methods
     """Models the Resource error and provides a nice printed version"""
 
     def __init__(self, filename, resource, entity, field, regex, value, original_value):  # pylint: disable=too-many-arguments
@@ -81,7 +81,7 @@ class ResourceError(object):  # pylint: disable=too-few-public-methods
         return text
 
 
-class FilenameError(object):  # pylint: disable=too-few-public-methods
+class FilenameError:  # pylint: disable=too-few-public-methods
     """Models the Filename error and provides a nice printed version"""
 
     def __init__(self, filename, resource, target):

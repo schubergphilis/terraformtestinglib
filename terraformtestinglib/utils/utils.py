@@ -58,11 +58,11 @@ class RecursiveDictionary(dict):
         third like dict.update() does - but don't overwrite sub-dictionaries.
         """
         try:
-            iterator = other.iteritems()
+            iterator = other.items()
         except AttributeError:
             iterator = other
         self.iter_rec_update(iterator)
-        self.iter_rec_update(third.iteritems())
+        self.iter_rec_update(third.items())
 
     def iter_rec_update(self, iterator):
         """Updates recursively"""
