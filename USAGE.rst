@@ -25,7 +25,7 @@ To develop on terraformtestinglib:
     _CI/scipts/tag
 
     # To bump semantic versioning [major|minor|patch]
-    _CI/scipts/tag major|minor|patch
+    _CI/scipts/tag --major|--minor|--patch
 
     # To upload the project to a pypi repo if user and password is properly provided
     _CI/scripts/upload
@@ -35,12 +35,15 @@ To develop on terraformtestinglib:
 
 
 
-To use terraformtestinglib in a project:
+To use terraformtestinglib in a project for linting:
 
 .. code-block:: python
 
     from terraformtestinglib import Stack
-    stack = Stack('path_to_tf_files', 'path_to_naming_yaml', 'optional_path_to_positioning_yaml')
+    stack = Stack('path_to_tf_files',
+                  'path_to_naming_yaml',
+                  'optional_path_to_positioning_yaml',
+                  'optional_path_to_global.tfvars)
     stack.validate()
     for error in stack.errors:
         print(error)
@@ -90,3 +93,4 @@ To use terraformtestinglib in a project:
        - azurerm_app_service_plan
        - azurerm_virtual_machine
        - aws_instance
+

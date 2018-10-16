@@ -1,0 +1,7 @@
+---
+
+- resource: resource_with_count
+  regex: .*
+  fields:
+    - value: tags.variableized
+      regex: wrong.*

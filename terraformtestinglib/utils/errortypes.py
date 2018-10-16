@@ -45,28 +45,29 @@ __email__ = '''<ctyfoxylos@schubergphilis.com>'''
 __status__ = '''Development'''  # "Prototype", "Development", "Production".
 
 
-RuleError = namedtuple('RuleError', ['entity', 'field', 'regex', 'value'])
+RuleError = namedtuple('RuleError', ['resource_type', 'entity', 'field', 'regex', 'value', 'original_value'])
 
 
-class ResourceError(object):  # pylint: disable=too-few-public-methods
+class ResourceError:  # pylint: disable=too-few-public-methods
     """Models the Resource error and provides a nice printed version"""
 
-    def __init__(self, filename, resource, entity, field, regex, value):  # pylint: disable=too-many-arguments
+    def __init__(self, filename, resource, entity, field, regex, value, original_value):  # pylint: disable=too-many-arguments
         self.filename = filename
         self.resource = resource
         self.entity = entity
         self.field = field
         self.regex = regex
         self.value = value
+        self.original_value = original_value
 
     def __str__(self):
         filename = (
-            fore.RED + style.BOLD + self.resource + '/' + self.filename + style.RESET)  # pylint: disable=no-member
+            fore.RED + style.BOLD + self.filename + '/' + self.resource + style.RESET)  # pylint: disable=no-member
         resource = (fore.RED + style.BOLD + self.entity + style.RESET)  # pylint: disable=no-member
         regex = (fore.RED + style.BOLD + self.regex + style.RESET)  # pylint: disable=no-member
         value = (fore.RED + style.BOLD + self.value + style.RESET)  # pylint: disable=no-member
         field = (fore.RED + style.BOLD + self.field + style.RESET)  # pylint: disable=no-member
-        return ('Naming convention not followed on file {filename} for resource '
+        text = ('Naming convention not followed on file {filename} for resource '
                 '{resource} for field {field}'
                 '\n\tRegex not matched : {regex}'
                 '\n\tValue             : {value}').format(filename=filename,
@@ -74,9 +75,13 @@ class ResourceError(object):  # pylint: disable=too-few-public-methods
                                                           regex=regex,
                                                           value=value,
                                                           field=field)
+        if self.original_value:
+            original = (fore.RED + style.BOLD + self.original_value + style.RESET)  # pylint: disable=no-member
+            text += '\n\tOriginal Value    : {original}'.format(original=original)
+        return text
 
 
-class FilenameError(object):  # pylint: disable=too-few-public-methods
+class FilenameError:  # pylint: disable=too-few-public-methods
     """Models the Filename error and provides a nice printed version"""
 
     def __init__(self, filename, resource, target):
@@ -86,7 +91,7 @@ class FilenameError(object):  # pylint: disable=too-few-public-methods
 
     def __str__(self):
         filename = (
-            fore.RED + style.BOLD + self.resource + '/' + self.filename + style.RESET)  # pylint: disable=no-member
+            fore.RED + style.BOLD + self.filename + '/' + self.resource + style.RESET)  # pylint: disable=no-member
         resource = (fore.RED + style.BOLD + self.resource + style.RESET)  # pylint: disable=no-member
         target = (fore.RED + style.BOLD + self.target + style.RESET)  # pylint: disable=no-member
         return ('Filename positioning not followed on file {filename} '

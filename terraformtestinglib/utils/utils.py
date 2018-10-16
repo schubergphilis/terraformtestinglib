@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# File: terraformtestinglibexceptions.py
+# File: utils.py
 #
 # Copyright 2018 Costas Tyfoxylos
 #
@@ -24,12 +24,13 @@
 #
 
 """
-Custom exception code for terraformtestinglib
+Main code for utils
 
 .. _Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 
 """
+
 
 __author__ = '''Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>'''
 __docformat__ = '''google'''
@@ -42,13 +43,32 @@ __email__ = '''<ctyfoxylos@schubergphilis.com>'''
 __status__ = '''Development'''  # "Prototype", "Development", "Production".
 
 
-class InvalidNaming(Exception):
-    """The rules file provided was invalid"""
+class RecursiveDictionary(dict):
+    """Implements recursively updating dictionary
 
+    RecursiveDictionary provides the methods update and iter_rec_update
+    that can be used to update member dictionaries rather than overwriting
+    them.
+    """
 
-class InvalidPositioning(Exception):
-    """The structure file provided was invalid"""
+    def update(self, other, **third):
+        """Implements the recursion
 
+        Recursively update the dictionary with the contents of other and
+        third like dict.update() does - but don't overwrite sub-dictionaries.
+        """
+        try:
+            iterator = other.items()
+        except AttributeError:
+            iterator = other
+        self.iter_rec_update(iterator)
+        self.iter_rec_update(third.items())
 
-class MissingVariable(Exception):
-    """The variable is missing"""
+    def iter_rec_update(self, iterator):
+        """Updates recursively"""
+        for (key, value) in iterator:
+            if key in self and isinstance(self[key], dict) and isinstance(value, dict):
+                self[key] = RecursiveDictionary(self[key])
+                self[key].update(value)
+            else:
+                self[key] = value

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# File: terraformtestinglibexceptions.py
 #
 # Copyright 2018 Costas Tyfoxylos
 #
@@ -23,32 +22,38 @@
 #  DEALINGS IN THE SOFTWARE.
 #
 
-"""
-Custom exception code for terraformtestinglib
 
-.. _Google Python Style Guide:
-   http://google.github.io/styleguide/pyguide.html
+import os
+import logging
+from bootstrap import bootstrap
+from library import execute_command
 
-"""
-
-__author__ = '''Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>'''
-__docformat__ = '''google'''
-__date__ = '''2018-05-24'''
-__copyright__ = '''Copyright 2018, Costas Tyfoxylos'''
-__credits__ = ["Costas Tyfoxylos"]
-__license__ = '''MIT'''
-__maintainer__ = '''Costas Tyfoxylos'''
-__email__ = '''<ctyfoxylos@schubergphilis.com>'''
-__status__ = '''Development'''  # "Prototype", "Development", "Production".
+# This is the main prefix used for logging
+LOGGER_BASENAME = '''_CI.graph'''
+LOGGER = logging.getLogger(LOGGER_BASENAME)
+LOGGER.addHandler(logging.NullHandler())
 
 
-class InvalidNaming(Exception):
-    """The rules file provided was invalid"""
+def graph():
+    emojize = bootstrap()
+    os.chdir('graphs')
+    create_graph_command = ('pyreverse '
+                            '-o png '
+                            '-A '
+                            '-f PUB_ONLY '
+                            '-p graphs {}').format(os.path.join('..', 'terraformtestinglib'))
+    exit_code = execute_command(create_graph_command)
+    success = not exit_code
+    if success:
+        LOGGER.info('%s Successfully created graph images %s',
+                    emojize(':white_heavy_check_mark:'),
+                    emojize(':thumbs_up:'))
+    else:
+        LOGGER.error('%s Errors in creation of graph images found! %s',
+                     emojize(':cross_mark:'),
+                     emojize(':crying_face:'))
+    raise SystemExit(exit_code)
 
 
-class InvalidPositioning(Exception):
-    """The structure file provided was invalid"""
-
-
-class MissingVariable(Exception):
-    """The variable is missing"""
+if __name__ == '__main__':
+    graph()

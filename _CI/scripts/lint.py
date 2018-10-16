@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# File: terraformtestinglibexceptions.py
 #
 # Copyright 2018 Costas Tyfoxylos
 #
@@ -23,32 +22,32 @@
 #  DEALINGS IN THE SOFTWARE.
 #
 
-"""
-Custom exception code for terraformtestinglib
 
-.. _Google Python Style Guide:
-   http://google.github.io/styleguide/pyguide.html
-
-"""
-
-__author__ = '''Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>'''
-__docformat__ = '''google'''
-__date__ = '''2018-05-24'''
-__copyright__ = '''Copyright 2018, Costas Tyfoxylos'''
-__credits__ = ["Costas Tyfoxylos"]
-__license__ = '''MIT'''
-__maintainer__ = '''Costas Tyfoxylos'''
-__email__ = '''<ctyfoxylos@schubergphilis.com>'''
-__status__ = '''Development'''  # "Prototype", "Development", "Production".
+import logging
+from bootstrap import bootstrap
+from library import execute_command
 
 
-class InvalidNaming(Exception):
-    """The rules file provided was invalid"""
+# This is the main prefix used for logging
+LOGGER_BASENAME = '''_CI.lint'''
+LOGGER = logging.getLogger(LOGGER_BASENAME)
+LOGGER.addHandler(logging.NullHandler())
 
 
-class InvalidPositioning(Exception):
-    """The structure file provided was invalid"""
+def lint():
+    emojize = bootstrap()
+    exit_code = execute_command('prospector -DFM')
+    success = not exit_code
+    if success:
+        LOGGER.info('%s No linting errors found! %s',
+                    emojize(':white_heavy_check_mark:'),
+                    emojize(':thumbs_up:'))
+    else:
+        LOGGER.error('%s Linting errors found! %s',
+                     emojize(':cross_mark:'),
+                     emojize(':crying_face:'))
+    raise SystemExit(exit_code)
 
 
-class MissingVariable(Exception):
-    """The variable is missing"""
+if __name__ == '__main__':
+    lint()

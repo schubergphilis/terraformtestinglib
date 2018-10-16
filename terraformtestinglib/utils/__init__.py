@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# File: terraformtestinglibexceptions.py
+# File: __init__.py
 #
 # Copyright 2018 Costas Tyfoxylos
 #
@@ -24,31 +24,29 @@
 #
 
 """
-Custom exception code for terraformtestinglib
+terraformtestinglib.utils package
+
+Import all parts from terraformtestinglib.utils here
 
 .. _Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
-
 """
+
+from terraformtestinglib.utils.errortypes import RuleError, ResourceError, FilenameError
+from terraformtestinglib.utils.utils import RecursiveDictionary
 
 __author__ = '''Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>'''
 __docformat__ = '''google'''
-__date__ = '''2018-05-24'''
+__date__ = '''2018-10-12'''
 __copyright__ = '''Copyright 2018, Costas Tyfoxylos'''
-__credits__ = ["Costas Tyfoxylos"]
 __license__ = '''MIT'''
 __maintainer__ = '''Costas Tyfoxylos'''
 __email__ = '''<ctyfoxylos@schubergphilis.com>'''
 __status__ = '''Development'''  # "Prototype", "Development", "Production".
 
 
-class InvalidNaming(Exception):
-    """The rules file provided was invalid"""
+assert RuleError
+assert ResourceError
+assert FilenameError
 
-
-class InvalidPositioning(Exception):
-    """The structure file provided was invalid"""
-
-
-class MissingVariable(Exception):
-    """The variable is missing"""
+assert RecursiveDictionary

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# File: terraformtestinglibexceptions.py
 #
 # Copyright 2018 Costas Tyfoxylos
 #
@@ -22,33 +21,3 @@
 #  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 #  DEALINGS IN THE SOFTWARE.
 #
-
-"""
-Custom exception code for terraformtestinglib
-
-.. _Google Python Style Guide:
-   http://google.github.io/styleguide/pyguide.html
-
-"""
-
-__author__ = '''Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>'''
-__docformat__ = '''google'''
-__date__ = '''2018-05-24'''
-__copyright__ = '''Copyright 2018, Costas Tyfoxylos'''
-__credits__ = ["Costas Tyfoxylos"]
-__license__ = '''MIT'''
-__maintainer__ = '''Costas Tyfoxylos'''
-__email__ = '''<ctyfoxylos@schubergphilis.com>'''
-__status__ = '''Development'''  # "Prototype", "Development", "Production".
-
-
-class InvalidNaming(Exception):
-    """The rules file provided was invalid"""
-
-
-class InvalidPositioning(Exception):
-    """The structure file provided was invalid"""
-
-
-class MissingVariable(Exception):
-    """The variable is missing"""

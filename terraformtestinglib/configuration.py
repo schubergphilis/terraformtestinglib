@@ -54,9 +54,9 @@ def is_valid_regex(value):
     return is_valid
 
 
-NAMING_SCHEMA = Schema([{'resource': basestring,
+NAMING_SCHEMA = Schema([{'resource': str,
                          'regex': is_valid_regex,
-                         Optional('fields'): [{'value': basestring,
+                         Optional('fields'): [{'value': str,
                                                'regex': is_valid_regex}]}])
 
-POSITIONING_SCHEMA = Schema({And(basestring, lambda x: x.endswith('.tf')): [basestring]})
+POSITIONING_SCHEMA = Schema({And(str, lambda x: x.endswith('.tf')): [str]})

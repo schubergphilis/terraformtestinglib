@@ -31,9 +31,11 @@ Import all parts from terraformtestinglib here
 .. _Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
 """
+
 from ._version import __version__
-from .terraformtestinglib import Stack, FilenameError, ResourceError
-from .terraformtestinglibexceptions import InvalidNaming, InvalidPositioning
+from .linting import Stack
+from .testing import Validator
+from .terraformtestinglibexceptions import InvalidNaming, InvalidPositioning, MissingVariable
 
 __author__ = '''Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>'''
 __docformat__ = '''google'''
@@ -49,9 +51,9 @@ assert __version__
 
 # assert objects
 assert Stack
-assert FilenameError
-assert ResourceError
+assert Validator
 
-# asseer exceptions
+# assert exceptions
 assert InvalidPositioning
 assert InvalidNaming
+assert MissingVariable
