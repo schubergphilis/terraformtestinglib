@@ -22,3 +22,9 @@ History
 ------------------
 
 * Implemented interactive setting of the changelog in HISTORY.rst file on tagging
+
+
+1.0.3 (17-10-2018)
+------------------
+
+* Implemented interactive setting of the changelog in HISTORY.rst file on tagging
