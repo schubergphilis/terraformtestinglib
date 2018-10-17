@@ -16,3 +16,9 @@ History
 * Implemented testing capabilities with conditional filtering for resources
 * Ported the pipeline portion to python 3.7
 * Dropped official support for python2.7
+
+
+1.0.2 (17-10-2018)
+------------------
+
+* Implemented interactive setting of the changelog in HISTORY.rst file on tagging
