@@ -568,6 +568,43 @@ class AttributeList:
         return None, errors
 
     @assert_on_error
+    def nested_conditional_attribute_should_equal(self, check_key, check_value, required_key, required_value):
+        """Takes a key/value pair to check and if found checks for the correct required key/value pair in same attribute
+
+        Args:
+            check_key: The key to base an additional key value pair check off.
+            check_value: The value of the check key required to activate conditional logic.
+            required_key: Required key name to check if check key and value are set as specified in the test.
+            required_value: Mandatory value for the required key based on conditional check.
+
+        Raises:
+            AssertionError : If any errors are found on the check
+
+        Returns:
+            None
+
+        """
+        errors = []
+        for attribute in self.attributes:
+            if not isinstance(attribute.value, list):  # It's possible an attribute with type dict can be passed here.
+                attribute.value = [attribute.value]
+            for nested_attribute in attribute.value:
+                if nested_attribute.get(check_key) == check_value:
+                    if not nested_attribute.get(required_key) == required_value:
+                        errors.append("[{0}.{1}.{2}] containing '{3}' = '{4}'. "
+                                      "Should contain '{5}' = '{6}' but "
+                                      "has '{7}' = '{8}'".format(attribute.resource_type,
+                                                                 attribute.resource_name,
+                                                                 attribute.name,
+                                                                 check_key,
+                                                                 nested_attribute.get(check_key),
+                                                                 required_key,
+                                                                 required_value,
+                                                                 required_key,
+                                                                 nested_attribute.get(required_key)))
+        return None, errors
+
+    @assert_on_error
     def should_not_equal(self, value):
         """Checks for inequality for the provided value from all contained attributes
 
@@ -751,6 +788,22 @@ class Attribute:
         self._resource = resource
         self.name = name
         self.value = value
+        self.idx = 0
+        self.data = range(len(self.value)) if isinstance(self.value, list) else None
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.data is None:
+            raise StopIteration
+        self.idx += 1
+        try:
+            self.data[self.idx-1] # pylint: disable=pointless-statement
+            return self.value
+        except IndexError:
+            self.idx = 0
+            raise StopIteration
 
     @property
     def resource_type(self):
