@@ -28,3 +28,9 @@ History
 ------------------
 
 * Updated template and dependencies
+
+
+1.1.0 (07-01-2019)
+------------------
+
+* Added support for attributes with same name and filtering attributes on value
