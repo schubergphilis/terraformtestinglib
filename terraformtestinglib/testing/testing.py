@@ -544,8 +544,9 @@ class AttributeList:
                                                 attribute.value[name]))
                 elif self.validator.error_on_missing_attribute:
                     errors.append("[{0}.{1}] should have attribute: '{2}'".format(attribute.resource_type,
-                                                                                  "{0}.{1}".format(attribute.resource_name,
-                                                                                                   attribute.name),
+                                                                                  "{0}.{1}".format(
+                                                                                      attribute.resource_name,
+                                                                                      attribute.name),
                                                                                   attribute.name))
         return AttributeList(self.validator, attributes), errors
 
@@ -574,13 +575,14 @@ class AttributeList:
         return None, errors
 
     def if_has_attribute_with_value(self, attribute, value):
-        """
+        """Filters the AttributeList based on the provided attribute and value
 
         Args:
-            attribute:
-            value:
+            attribute: The attribute to filter on
+            value: the value of the attribute to filter on
 
         Returns:
+            AttributeList : A container of attribute objects
 
         """
         attributes = []
