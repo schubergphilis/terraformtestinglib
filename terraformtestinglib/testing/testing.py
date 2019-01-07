@@ -532,15 +532,22 @@ class AttributeList:
         errors = []
         attributes = []
         for attribute in self.attributes:
-            if name in attribute.value.keys():
-                attributes.append(Attribute(attribute._resource,  # pylint: disable=protected-access
-                                            '{}.{}'.format(attribute.name, name),
-                                            attribute.value[name]))
-            elif self.validator.error_on_missing_attribute:
-                errors.append("[{0}.{1}] should have attribute: '{2}'".format(attribute.resource_type,
-                                                                              "{0}.{1}".format(attribute.resource_name,
-                                                                                               attribute.name),
-                                                                              attribute.name))
+            if isinstance(attribute.value, list):
+                for entry in attribute.value:
+                    attributes.append(Attribute(attribute._resource,  # pylint: disable=protected-access
+                                                '{}.{}'.format(attribute.name, name),
+                                                entry))
+            else:
+                if name in attribute.value.keys():
+                    attributes.append(Attribute(attribute._resource,  # pylint: disable=protected-access
+                                                '{}.{}'.format(attribute.name, name),
+                                                attribute.value[name]))
+                elif self.validator.error_on_missing_attribute:
+                    errors.append("[{0}.{1}] should have attribute: '{2}'".format(attribute.resource_type,
+                                                                                  "{0}.{1}".format(
+                                                                                      attribute.resource_name,
+                                                                                      attribute.name),
+                                                                                  attribute.name))
         return AttributeList(self.validator, attributes), errors
 
     @assert_on_error
@@ -566,6 +573,26 @@ class AttributeList:
                                                                                 value,
                                                                                 attribute.value))
         return None, errors
+
+    def if_has_attribute_with_value(self, attribute, value):
+        """Filters the AttributeList based on the provided attribute and value
+
+        Args:
+            attribute: The attribute to filter on
+            value: the value of the attribute to filter on
+
+        Returns:
+            AttributeList : A container of attribute objects
+
+        """
+        attributes = []
+        for attribute_ in self.attributes:
+            try:
+                if value == attribute_.value.get(attribute):
+                    attributes.append(attribute_)
+            except TypeError:
+                pass
+        return AttributeList(self.validator, attributes)
 
     @assert_on_error
     def should_not_equal(self, value):
