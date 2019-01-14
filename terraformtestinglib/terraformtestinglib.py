@@ -92,7 +92,7 @@ class HclView:
             self.state.update({'variable': global_variables})
         for hcl_resource in hcl_resources:
             self._add_hcl_resource(hcl_resource)
-        self.resources = self._interpolate_state(copy.deepcopy(self.state.get('resource')))
+        self.resources = self._interpolate_state(copy.deepcopy(self.state.get('resource', {})))
 
     def _add_hcl_resource(self, data):
         self.state.update(self._filter_empty_variables(data))
