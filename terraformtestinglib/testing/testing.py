@@ -187,7 +187,11 @@ class ResourceList:
         attributes_list = []
         for resource in self._resources:
             if name in resource.data.keys():
-                attributes_list.append(Attribute(resource, name, resource.data.get(name)))
+                if isinstance(resource.data.get(name), list):
+                    for entry in resource.data.get(name):
+                        attributes_list.append(Attribute(resource, name, entry))
+                else:
+                    attributes_list.append(Attribute(resource, name, resource.data.get(name)))
             elif self.validator.error_on_missing_attribute:
                 errors.append("[{0}.{1}] should have property: '{2}'".format(resource.type, resource.name, name))
         return AttributeList(self.validator, attributes_list), errors
