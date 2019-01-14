@@ -34,3 +34,9 @@ History
 ------------------
 
 * Added support for attributes with same name and filtering attributes on value
+
+
+1.1.1 (14-01-2019)
+------------------
+
+* Correctly handle lists in resource data.
