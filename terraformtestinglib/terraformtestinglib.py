@@ -163,7 +163,7 @@ class HclView:
                 interpolated_value = self.get_variable_value(regex)
                 if interpolated_value == regex:
                     self._logger.error('Could not interpolate variable "{}" maybe not set in variables?'.format(value))
-                value = value.replace(regex, interpolated_value)
+                value = value.replace(regex, str(interpolated_value))
             elif '${format(' in regex:
                 value = self._interpolate_format(value)
         return value
