@@ -40,3 +40,9 @@ History
 ------------------
 
 * Correctly handle lists in resource data.
+
+
+1.1.2 (18-01-2019)
+------------------
+
+* Casting to string for replacement in case it is a number
