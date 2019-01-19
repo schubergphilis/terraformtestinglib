@@ -112,9 +112,10 @@ class HclView:
             for resource_name, resource_data in resources_entries.items():
                 counter = resource_data.get('count')
                 if counter:
-                    for number in range(counter):
+                    for number in range(self._interpolate_variable(counter)):
                         name = resource_name + '.{}'.format(number)
-                        data = self._interpolate_counter(copy.deepcopy(resource_data), str(number))
+                        data = self._interpolate_counter(
+                            copy.deepcopy(resource_data), str(number))
                         entry[name] = data
                 else:
                     entry[resource_name] = resource_data
@@ -155,8 +156,18 @@ class HclView:
             value = eval(' % '.join([value, str(argument)]), {"__builtins__": {}})  # pylint: disable=eval-used
         return value
 
+    def _interpolate_length(self, value):
+        # look for '(' ending in ')' pattern
+        match = re.search(r'\(.*\)', value)
+        if match:
+            return len(self.get_variable_value(match.group(0).strip()))
+        return value
+
     def _interpolate_variable(self, value):
-        match = re.search(r'\$\{.*\}', value)  # look for '${' ending in '}' pattern
+        # look for '${' ending in '}' pattern
+        if isinstance(value, (int, float)):
+            return value
+        match = re.search(r'\$\{.*\}', value)
         if match:
             regex = match.group(0)
             if regex.startswith('${var.'):
@@ -166,6 +177,8 @@ class HclView:
                 value = value.replace(regex, str(interpolated_value))
             elif '${format(' in regex:
                 value = self._interpolate_format(value)
+            elif '${length(' in regex:
+                value = self._interpolate_length(value)
         return value
 
     def get_variable_value(self, variable):
@@ -181,9 +194,13 @@ class HclView:
 
         """
         initial_value = variable
-        if variable.startswith('${var.'):
-            variable_name = variable.split('var.')[1].split('}')[0]
-            match = re.search(r'\[.*\]', variable_name)  # look for '[' ending in ']' pattern
+        permutations = ('${var.', '(var.')
+        if variable.startswith(permutations):
+            variable_name = variable.split('var.')[1]
+            variable_name = variable_name.split('}')[0]
+            variable_name = variable_name.split(')')[0]
+            # look for '[' ending in ']' pattern
+            match = re.search(r'\[.*\]', variable_name)
             if match:
                 name = variable_name.split('[')[0]
                 variable = self.state.get('variable', {}).get(name, variable)
