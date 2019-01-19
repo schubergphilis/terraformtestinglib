@@ -114,8 +114,7 @@ class HclView:
                 if counter:
                     for number in range(self._interpolate_variable(counter)):
                         name = resource_name + '.{}'.format(number)
-                        data = self._interpolate_counter(
-                            copy.deepcopy(resource_data), str(number))
+                        data = self._interpolate_counter(copy.deepcopy(resource_data), str(number))
                         entry[name] = data
                 else:
                     entry[resource_name] = resource_data
