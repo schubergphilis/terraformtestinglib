@@ -166,9 +166,8 @@ class HclView:
         # if its a number pass through
         if isinstance(value, (int, float)):
             return value
-        # look for '${' ending in '}' pattern
-        match = re.search(r'\$\{.*\}', value)
-        if match:
+        # look for '${' ending in '}' pattern, stop at the first } and performing multiple matches
+        for match in re.finditer(r'\$\{.+?\}', value):
             regex = match.group(0)
             if regex.startswith('${var.'):
                 interpolated_value = self.get_variable_value(regex)
