@@ -46,3 +46,9 @@ History
 ------------------
 
 * Casting to string for replacement in case it is a number
+
+
+1.2.0 (19-01-2019)
+------------------
+
+* Added support for "length" method and multi variable strings
