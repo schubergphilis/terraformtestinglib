@@ -163,9 +163,10 @@ class HclView:
         return value
 
     def _interpolate_variable(self, value):
-        # look for '${' ending in '}' pattern
+        # if its a number pass through
         if isinstance(value, (int, float)):
             return value
+        # look for '${' ending in '}' pattern
         match = re.search(r'\$\{.*\}', value)
         if match:
             regex = match.group(0)
