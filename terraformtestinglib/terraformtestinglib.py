@@ -112,7 +112,7 @@ class HclView:
             for resource_name, resource_data in resources_entries.items():
                 counter = resource_data.get('count')
                 if counter:
-                    for number in range(self._interpolate_variable(counter)):
+                    for number in range(int(self._interpolate_variable(counter))):
                         name = resource_name + '.{}'.format(number)
                         data = self._interpolate_counter(copy.deepcopy(resource_data), str(number))
                         entry[name] = data
