@@ -52,3 +52,9 @@ History
 ------------------
 
 * Added support for "length" method and multi variable strings
+
+
+1.2.1 (20-01-2019)
+------------------
+
+* fixed bug where count was a string breaking the range calculation
