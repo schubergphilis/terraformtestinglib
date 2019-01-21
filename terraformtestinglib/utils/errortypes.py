@@ -46,6 +46,7 @@ __status__ = '''Development'''  # "Prototype", "Development", "Production".
 
 
 RuleError = namedtuple('RuleError', ['resource_type', 'entity', 'field', 'regex', 'value', 'original_value'])
+ConfigurationError = namedtuple('ConfigurationError', ['resource_type', 'entity', 'field', 'regex', 'value', 'original_value'])
 
 
 class ResourceError:  # pylint: disable=too-few-public-methods

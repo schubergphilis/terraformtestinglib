@@ -43,7 +43,7 @@ from schema import SchemaError
 from terraformtestinglib.terraformtestinglib import Parser
 from terraformtestinglib.configuration import NAMING_SCHEMA, POSITIONING_SCHEMA
 from terraformtestinglib.terraformtestinglibexceptions import InvalidNaming, InvalidPositioning
-from terraformtestinglib.utils import RuleError, ResourceError, FilenameError
+from terraformtestinglib.utils import RuleError, ResourceError, FilenameError, ConfigurationError
 
 __author__ = '''Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>'''
 __docformat__ = '''google'''
@@ -290,13 +290,22 @@ class LintingResource:  # pylint: disable=too-many-instance-attributes
                 self._logger.debug('Found matching rule "%s"', rule.regex)
                 rule.validate(self.type, self.name, self.data, self.original_data)
                 for error in rule.errors:
-                    self._logger.error('Naming convention not followed on file %s for resource '
-                                       '%s with type %s. Regex not matched :%s. Value :%s',
-                                       self.filename,
-                                       error.entity,
-                                       error.field,
-                                       error.regex,
-                                       error.value)
+                    if isinstance(error, ConfigurationError):
+                        self._logger.error('Invalid configuration found on file %s for resource '
+                                           '%s with type %s . Invalid value found :%s',
+                                           self.filename,
+                                           error.entity,
+                                           error.field,
+                                           error.value)
+
+                    else:
+                        self._logger.error('Naming convention not followed on file %s for resource '
+                                           '%s with type %s. Regex not matched :%s. Value :%s',
+                                           self.filename,
+                                           error.entity,
+                                           error.field,
+                                           error.regex,
+                                           error.value)
                     self.errors.append(ResourceError(self.filename, *error))
             else:
                 self._logger.debug('No matching rule found')
@@ -380,6 +389,9 @@ class Rule:
             value = self._get_value_from_resource(resource_data, field.get('value'))
             original_value = original_value if original_value != value else None
             rule_arguments = [resource_type, resource_name, field.get('value'), regex, value, original_value]
+            if isinstance(value, (list, tuple)):
+                self.errors = ConfigurationError(*rule_arguments)
+                continue
             try:
                 if not re.match(rule, value):
                     self.errors = RuleError(*rule_arguments)
