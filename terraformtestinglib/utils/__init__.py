@@ -32,7 +32,7 @@ Import all parts from terraformtestinglib.utils here
    http://google.github.io/styleguide/pyguide.html
 """
 
-from terraformtestinglib.utils.errortypes import RuleError, ResourceError, FilenameError
+from terraformtestinglib.utils.errortypes import RuleError, ResourceError, FilenameError, ConfigurationError
 from terraformtestinglib.utils.utils import RecursiveDictionary
 
 __author__ = '''Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>'''
@@ -48,5 +48,6 @@ __status__ = '''Development'''  # "Prototype", "Development", "Production".
 assert RuleError
 assert ResourceError
 assert FilenameError
+assert ConfigurationError
 
 assert RecursiveDictionary
