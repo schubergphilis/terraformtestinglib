@@ -362,7 +362,7 @@ class Rule:
             resource_type (basestring): The type of the resource
             resource_name (basestring): The name of the resource
             resource_data (dict): The interpolated data of the resource
-            original_data (dict): The origininal data of the resource, before the interpolation
+            original_data (dict): The original data of the resource, before the interpolation
 
         Returns:
             True on successful validation, False otherwise
@@ -385,18 +385,25 @@ class Rule:
             if not regex:
                 continue
             rule = re.compile(regex)
-            original_value = self._get_value_from_resource(original_data, field.get('value'))
-            value = self._get_value_from_resource(resource_data, field.get('value'))
+            original_value, key_name = self._get_value_from_resource(original_data, field.get('value'))
+            value, key_name = self._get_value_from_resource(resource_data, field.get('value'))
             original_value = original_value if original_value != value else None
             rule_arguments = [resource_type, resource_name, field.get('value'), regex, value, original_value]
-            if isinstance(value, (list, tuple)):
-                self.errors = ConfigurationError(*rule_arguments)
-                continue
-            try:
-                if not re.match(rule, value):
-                    self.errors = RuleError(*rule_arguments)
-            except TypeError:
-                self._logger.error('Error matching for regex, values passed were, rule:%s value:%s', regex, value)
+            if isinstance(value, list):
+                for entry in value:
+                    # since there multiple occurances of the key we need to iterate all of them
+                    # and only use each ones value, that is why we overwrite the value for each iteration
+                    rule_arguments[4] = entry.get(key_name)
+                    self._match_rule_to_value(regex, rule, entry.get(key_name), rule_arguments)
+            else:
+                self._match_rule_to_value(regex, rule, value, rule_arguments)
+
+    def _match_rule_to_value(self, regex, rule, value, rule_arguments):
+        try:
+            if not re.match(rule, value):
+                self.errors = RuleError(*rule_arguments)
+        except TypeError:
+            self._logger.error('Error matching for regex, values passed were, rule:%s value:%s', regex, value)
 
     def _get_value_from_resource(self, resource, value):
         path = value.split('.')
@@ -404,7 +411,13 @@ class Rule:
             try:
                 field = resource.get(entry)
             except AttributeError:
-                field = None
                 self._logger.error('Error getting field %s, failed for path %s', value, path)
             resource = field
-        return resource
+            # if the resource is a list it means that there are multiple entries for the same key
+            # so it needs to be handled on the calling code
+            if isinstance(resource, list):
+                # we need to get the key name of the value that is a list.
+                # That should be the one after we just iterated over.
+                keys_path = value.split('.')
+                return resource, keys_path.pop(keys_path.index(entry) + 1)
+        return resource, None
