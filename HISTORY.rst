@@ -58,3 +58,9 @@ History
 ------------------
 
 * fixed bug where count was a string breaking the range calculation
+
+
+1.2.2 (22-01-2019)
+------------------
+
+* added support for multiple same keys that end up being handled as a list internally.
