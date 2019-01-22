@@ -93,7 +93,11 @@ class Validator(Parser):
         for resource_type, resource in self.hcl_view.resources.items():
             if resource_type in resource_types:
                 for resource_name, resource_data in resource.items():
-                    resources.append(Resource(resource_type, resource_name, resource_data))
+                    if resource_data.get('tags', {}).get('skip-testing'):
+                        self._logger.warning('Skipping resource %s testing '
+                                             'due to user overriding tag.', resource_name)
+                    else:
+                        resources.append(Resource(resource_type, resource_name, resource_data))
         return ResourceList(self, sorted(resources, key=attrgetter('name')))
 
     def variable(self, name):
