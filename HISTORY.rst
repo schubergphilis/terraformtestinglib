@@ -64,3 +64,9 @@ History
 ------------------
 
 * added support for multiple same keys that end up being handled as a list internally.
+
+
+1.2.3 (22-01-2019)
+------------------
+
+* added capabilities to skip a test based on a "skip-testing" tag on the resource
