@@ -80,19 +80,29 @@ else:
 HclFileResource = namedtuple('HclFileResource', ('filename', 'resource_type', 'resource_name', 'data'))
 
 
-class HclView:
+class HclView:  # pylint: disable=too-many-instance-attributes
     """Object representing the global view of hcl resources along with any global variables"""
 
-    def __init__(self, hcl_resources, global_variables=None, raise_on_missing_variable=True):
+    def __init__(self,
+                 hcl_resources,
+                 global_variables=None,
+                 raise_on_missing_variable=True,
+                 environment_variables=None):
+        if environment_variables and not isinstance(environment_variables, dict):
+            raise ValueError('Environment variables provided are not in a valid dictionary.')
         logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
         self._logger = logging.getLogger(logger_name)
         self.state = RecursiveDictionary()
         self._raise_on_missing_variable = raise_on_missing_variable
+        self._environment_variables = environment_variables if environment_variables else {}
         if global_variables and isinstance(global_variables, dict):
             self.state.update({'variable': global_variables})
         for hcl_resource in hcl_resources:
             self._add_hcl_resource(hcl_resource)
         self.resources = self._interpolate_state(copy.deepcopy(self.state.get('resource', {})))
+        self.data = self._interpolate_state(copy.deepcopy(self.state.get('data', {})))
+        self.terraform = self._interpolate_state(copy.deepcopy(self.state.get('terraform', {})))
+        self.provider = self._interpolate_state(copy.deepcopy(self.state.get('provider', {})))
 
     def _add_hcl_resource(self, data):
         self.state.update(self._filter_empty_variables(data))
@@ -110,7 +120,10 @@ class HclView:
         for resources_type, resources_entries in state.items():
             entry = {}
             for resource_name, resource_data in resources_entries.items():
-                counter = resource_data.get('count')
+                try:
+                    counter = resource_data.get('count')
+                except AttributeError:
+                    counter = None
                 if counter:
                     for number in range(int(self._interpolate_variable(counter))):
                         name = resource_name + '.{}'.format(number)
@@ -210,7 +223,10 @@ class HclView:
                     index = literal_eval(match.group(0))[0]
                     variable = variable[index]
             else:
-                variable = self.state.get('variable', {}).get(variable_name, variable)
+                # we look into the variables set in the state and if nothing is there
+                # we look into the provided environment variables
+                variable = self.state.get('variable', {}).get(variable_name,
+                                                              self._environment_variables.get(variable_name, variable))
         if variable == initial_value and self._raise_on_missing_variable:
             raise MissingVariable(initial_value)
         return variable
@@ -246,13 +262,18 @@ class HclView:
 class Parser:  # pylint: disable=too-few-public-methods
     """Manages the parsing of terraform files and creating the global hcl view from them"""
 
-    def __init__(self, configuration_path, global_variables_file_path=None, raise_on_missing_variable=True):
+    def __init__(self,
+                 configuration_path,
+                 global_variables_file_path=None,
+                 raise_on_missing_variable=True,
+                 environment_variables=None):
         logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
         self._logger = logging.getLogger(logger_name)
         file_resources, hcl_resources = self._parse_path(configuration_path)
         self.hcl_view = HclView(file_resources,
                                 self._get_global_variables(global_variables_file_path),
-                                raise_on_missing_variable)
+                                raise_on_missing_variable,
+                                environment_variables)
         self.file_resources = file_resources
         self.hcl_resources = hcl_resources
 
