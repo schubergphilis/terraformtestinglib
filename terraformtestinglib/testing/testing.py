@@ -72,8 +72,15 @@ def assert_on_error(func):
 class Validator(Parser):
     """Object exposing resources and variables of terraform plans"""
 
-    def __init__(self, configuration_path, global_variables_file_path=None, raise_on_missing_variable=True):
-        super(Validator, self).__init__(configuration_path, global_variables_file_path, raise_on_missing_variable)
+    def __init__(self,
+                 configuration_path,
+                 global_variables_file_path=None,
+                 raise_on_missing_variable=True,
+                 environment_variables=None):
+        super(Validator, self).__init__(configuration_path,
+                                        global_variables_file_path,
+                                        raise_on_missing_variable,
+                                        environment_variables)
         logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
         self._logger = logging.getLogger(logger_name)
         self.error_on_missing_attribute = False
