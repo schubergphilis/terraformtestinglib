@@ -88,9 +88,8 @@ class HclView:  # pylint: disable=too-many-instance-attributes
                  global_variables=None,
                  raise_on_missing_variable=True,
                  environment_variables=None):
-        if environment_variables:
-            if not isinstance(environment_variables, dict):
-                raise ValueError('Environment variables provided are not in a valid dictionary.')
+        if environment_variables and not isinstance(environment_variables, dict):
+            raise ValueError('Environment variables provided are not in a valid dictionary.')
         logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
         self._logger = logging.getLogger(logger_name)
         self.state = RecursiveDictionary()
