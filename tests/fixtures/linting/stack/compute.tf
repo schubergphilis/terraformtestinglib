@@ -1,24 +1,23 @@
-
 resource "azurerm_virtual_machine" "node3" {
-  name                = "custsxfgbngz015-node02"
+    name = "custsxfgbngz015-node02"
 
-  tags = {
-    skip_linting = "true"
-  }
+    tags = {
+        skip_linting = "true"
+    }
 }
 
 resource "azurerm_virtual_machine" "node4" {
-  name                = "custsxfgbngz015-node02"
+    name = "custsxfgbngz015-node02"
 
-  tags = {
-    skip_linting = "true"
-  }
+    tags = {
+        skip_linting = "true"
+    }
 }
 
 resource "azurerm_virtual_machine" "node5" {
-  name                = "custsxfgbngz015-node02"
-  tags = {
-  }
+    name = "custsxfgbngz015-node02"
+    tags = {
+    }
 }
 
 resource "random_resource" "node6" {
@@ -60,10 +59,10 @@ resource "resource_with_variable" "node11" {
 }
 
 
- resource "resource_with_count" "node123-app0x" {
-     count = 4
-     ami = "${var.image-aws-rhel74}"
-     tags = {
-         Name = "${format("node1234-app%02d", count.index + 1)}"
-     }
- }
+resource "resource_with_count" "node123-app0x" {
+    count = 4
+    ami = "${var.image-aws-rhel74}"
+    tags = {
+        Name = "${format("node1234-app%02d", count.index + 1)}"
+    }
+}

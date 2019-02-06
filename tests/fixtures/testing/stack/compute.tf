@@ -71,3 +71,29 @@ resource "resource_with_count" "node123-app0x" {
         Name = "${format("node1234-app%02d", count.index + 1)}"
     }
 }
+
+
+resource "resource_with_length_method" "interpolating_length" {
+    policy = "${length(var.numbers)}"
+}
+
+
+resource "resource_with_list_attributes" "listed_resource" {
+    os_profile_windows_config = {
+        winrm {
+            protocol = "HTTP"
+        }
+        additional_unattend_config {
+            pass = "oobeSystem"
+            component = "Microsoft-Windows-Shell-Setup"
+            setting_name = "AutoLogon"
+            content = "content1"
+        }
+        additional_unattend_config {
+            pass = "oobeSystem"
+            component = "Microsoft-Windows-Shell-Setup"
+            setting_name = "FirstLogonCommands"
+            content = "content2"
+        }
+    }
+}

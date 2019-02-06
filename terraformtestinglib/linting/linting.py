@@ -72,8 +72,7 @@ class Stack(Parser):
                  file_to_skip_for_positioning=None,
                  raise_on_missing_variable=True):
         super(Stack, self).__init__(configuration_path, global_variables_file_path, raise_on_missing_variable)
-        logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
-        self._logger = logging.getLogger(logger_name)
+        self._logger = logging.getLogger(f'{LOGGER_BASENAME}.{self.__class__.__name__}')
         self.path = configuration_path
         self.rules_set = self._get_naming_rules(naming_file_path)
         self.positioning = self._get_positioning_rules(positioning_file_path)
@@ -173,8 +172,7 @@ class LintingResource:  # pylint: disable=too-many-instance-attributes
     """Manages a resource and provides validation capabilities."""
 
     def __init__(self, filename, resource_type, name, data, original_data):  # pylint: disable=too-many-arguments
-        logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
-        self._logger = logging.getLogger(logger_name)
+        self._logger = logging.getLogger(f'{LOGGER_BASENAME}.{self.__class__.__name__}')
         self.filename = filename
         self.name = name
         self.type = resource_type
@@ -249,8 +247,7 @@ class LintingResource:  # pylint: disable=too-many-instance-attributes
             deprecated_tag = deprecated_tag_name
             tags = self.tags or {}
             if tags.get(deprecated_tag):
-                message = ('The tag "{}" is deprecated. '
-                           'Please use "{}". Resource: {}').format(deprecated_tag, check_tag, self.name)
+                message = f'The tag "{deprecated_tag}" is deprecated. Please use "{check_tag}". Resource: {self.name}'
                 warnings.warn(message, PendingDeprecationWarning)
                 check_tag = deprecated_tag
             skip_check = tags.get(check_tag, False)
@@ -336,8 +333,7 @@ class Rule:
     """Handles the rule object providing validation capabilities."""
 
     def __init__(self, data):
-        logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
-        self._logger = logging.getLogger(logger_name)
+        self._logger = logging.getLogger(f'{LOGGER_BASENAME}.{self.__class__.__name__}')
         self.data = data
         self.regex = self.data.get('regex')
         self._errors = []
