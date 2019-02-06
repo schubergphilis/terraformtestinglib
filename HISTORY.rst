@@ -70,3 +70,9 @@ History
 ------------------
 
 * added capabilities to skip a test based on a "skip-testing" tag on the resource
+
+
+1.3.0 (06-02-2019)
+------------------
+
+* implemented all terraform supported entities like, data, terraform and provider.
