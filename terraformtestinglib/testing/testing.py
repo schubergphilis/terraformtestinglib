@@ -35,8 +35,10 @@ import functools
 import json
 import logging
 import re
+import typing
 from operator import attrgetter
-from collections import namedtuple
+from dataclasses import dataclass
+
 
 from terraformtestinglib.terraformtestinglib import Parser
 
@@ -69,6 +71,35 @@ def assert_on_error(func):
     return wrapped
 
 
+@dataclass
+class Entity:
+    """Basic model of an entity exposing required attributes"""
+
+    type: str
+    name: str
+    data: typing.Any
+
+
+@dataclass
+class Resource(Entity):
+    """Basic model of a resource exposing required attributes"""
+
+
+@dataclass
+class Data(Entity):
+    """Basic model of a data object exposing required attributes"""
+
+
+@dataclass
+class Provider(Entity):
+    """Basic model of a provider object exposing required attributes"""
+
+
+@dataclass
+class Terraform(Entity):
+    """Basic model of a provider object exposing required attributes"""
+
+
 class Validator(Parser):
     """Object exposing resources and variables of terraform plans"""
 
@@ -81,8 +112,7 @@ class Validator(Parser):
                                         global_variables_file_path,
                                         raise_on_missing_variable,
                                         environment_variables)
-        logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
-        self._logger = logging.getLogger(logger_name)
+        self._logger = logging.getLogger(f'{LOGGER_BASENAME}.{self.__class__.__name__}')
         self.error_on_missing_attribute = False
 
     def resources(self, type_):
@@ -106,6 +136,51 @@ class Validator(Parser):
                     else:
                         resources.append(Resource(resource_type, resource_name, resource_data))
         return ResourceList(self, sorted(resources, key=attrgetter('name')))
+
+    def data(self, type_):
+        """Filters data based on data type which is always cast to list
+
+        Args:
+            type_ (basestring|list): The type of data attributes to filter on. Always gets cast to a list.
+
+        Returns:
+            DataList : An object containing the data matching the type provided
+
+        """
+        return self._entity('data', Data, DataList, type_)
+
+    def provider(self, type_):
+        """Filters providers based on provider type which is always cast to list
+
+        Args:
+            type_ (basestring|list): The type of provider to filter on. Always gets cast to a list.
+
+        Returns:
+            ProviderList : An object containing the providers matching the type provided
+
+        """
+        return self._entity('provider', Provider, ProviderList, type_)
+
+    def terraform(self, type_):
+        """Filters terraform entries based on provided type which is always cast to list
+
+        Args:
+            type_ (basestring|list): The type of terraform attributes to filter on. Always gets cast to a list.
+
+        Returns:
+            TerraformList : An object containing the terraform objects matching the type provided
+
+        """
+        return self._entity('terraform', Terraform, TerraformList, type_)
+
+    def _entity(self, state_object, entity_object, entity_container, entity_type):
+        types = self.to_list(entity_type)
+        output_list = []
+        for _type, data in getattr(self.hcl_view, state_object).items():
+            if _type in types:
+                output_list.append(entity_object(_type, _type, data))
+        return entity_container(self, sorted(output_list, key=attrgetter('name')))
+
 
     def variable(self, name):
         """Returns a variable object of the provided name
@@ -147,38 +222,17 @@ class Validator(Parser):
         return value
 
 
-class ResourceList:
-    """A list of resource objects being capable to filter on specific requirements"""
+class Container:
+    """An object handling the exposing of attributes of different resources of terraform"""
 
-    def __init__(self, validator_instance, resources):
-        logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
-        self._logger = logging.getLogger(logger_name)
+    def __init__(self, validator_instance, entities):
+        self._logger = logging.getLogger(f'{LOGGER_BASENAME}.{self.__class__.__name__}')
         self.validator = validator_instance
-        self.__resources = resources
-
-    def resources(self, type_):
-        """Filters resources based on resource type which is always cast to list
-
-        Args:
-            type_ (list|basestring): The type of resources to filter on. Always gets cast to list.
-
-        Raises:
-            AssertionError : If any errors are calculated
-
-        Returns:
-            ResourceList (list) : An object containing any resources matching the type
-
-        """
-        resource_types = self.validator.to_list(type_)
-        resources = []
-        for resource in self._resources:
-            if resource.type in resource_types:
-                resources.append(resource)
-        return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
+        self.__entities = entities
 
     @property
-    def _resources(self):
-        return self.__resources
+    def _entities(self):
+        return self.__entities
 
     @assert_on_error
     def attribute(self, name):
@@ -196,15 +250,18 @@ class ResourceList:
         """
         errors = []
         attributes_list = []
-        for resource in self._resources:
-            if name in resource.data.keys():
-                if isinstance(resource.data.get(name), list):
-                    for entry in resource.data.get(name):
-                        attributes_list.append(Attribute(resource, name, entry))
+        for entity in self._entities:
+            if not isinstance(entity.data, dict):
+                attributes_list.append(Attribute(entity, name, entity.data))
+                continue
+            if name in entity.data.keys():
+                if isinstance(entity.data.get(name), list):
+                    for entry in entity.data.get(name):
+                        attributes_list.append(Attribute(entity, name, entry))
                 else:
-                    attributes_list.append(Attribute(resource, name, resource.data.get(name)))
+                    attributes_list.append(Attribute(entity, name, entity.data.get(name)))
             elif self.validator.error_on_missing_attribute:
-                errors.append("[{0}.{1}] should have property: '{2}'".format(resource.type, resource.name, name))
+                errors.append(f"[{entity.type}.{entity.name}] should have attribute: '{name}'")
         return AttributeList(self.validator, attributes_list), errors
 
     @assert_on_error
@@ -223,7 +280,7 @@ class ResourceList:
         """
         errors = []
         attributes_list = []
-        for resource in self._resources:
+        for resource in self._entities:
             matched = False
             for attribute in resource.data.keys():
                 if re.search(regex, attribute):
@@ -232,9 +289,7 @@ class ResourceList:
                                                      resource.data.get(attribute)))
                     matched = True
             if self.validator.error_on_missing_attribute and not matched:
-                errors.append("[{0}.{1}] should have attribute matching regex: '{2}'".format(resource.type,
-                                                                                             resource.name,
-                                                                                             regex))
+                errors.append(f"[{resource.type}.{resource.name}] should have attribute matching regex: '{regex}'")
         return AttributeList(self.validator, attributes_list), errors
 
     @assert_on_error
@@ -253,12 +308,10 @@ class ResourceList:
         """
         attributes_list = self.validator.to_list(attributes_list)
         errors = []
-        for resource in self._resources:
+        for resource in self._entities:
             for attribute in attributes_list:
                 if attribute not in resource.data.keys():
-                    errors.append("[{0}.{1}] should have attribute: '{2}'".format(resource.type,
-                                                                                  resource.name,
-                                                                                  attribute))
+                    errors.append(f"[{resource.type}.{resource.name}] should have attribute: '{attribute}'")
         return None, errors
 
     @assert_on_error
@@ -277,13 +330,47 @@ class ResourceList:
         """
         attributes_list = self.validator.to_list(attributes_list)
         errors = []
-        for resource in self._resources:
+        for resource in self._entities:
             for attribute in attributes_list:
                 if attribute in resource.data.keys():
-                    errors.append("[{0}.{1}] should not have attribute(s): '{2}'".format(resource.type,
-                                                                                         resource.name,
-                                                                                         attribute))
+                    errors.append(f"[{resource.type}.{resource.name}] should not have attribute(s): '{attribute}'")
         return None, errors
+
+
+class DataList(Container):
+    """A list of data objects being capable to filter on specific requirements"""
+
+
+class ProviderList(Container):
+    """A list of provider objects being capable to filter on specific requirements"""
+
+
+class TerraformList(Container):
+    """A list of terraform objects being capable to filter on specific requirements"""
+
+
+class ResourceList(Container):
+    """A list of resource objects being capable to filter on specific requirements"""
+
+    def resources(self, type_):
+        """Filters resources based on resource type which is always cast to list
+
+        Args:
+            type_ (list|basestring): The type of resources to filter on. Always gets cast to list.
+
+        Raises:
+            AssertionError : If any errors are calculated
+
+        Returns:
+            ResourceList (list) : An object containing any resources matching the type
+
+        """
+        resource_types = self.validator.to_list(type_)
+        resources = []
+        for resource in self._entities:
+            if resource.type in resource_types:
+                resources.append(resource)
+        return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
 
     def if_has_attribute(self, attribute):
         """Filters the resources based on the provided attribute
@@ -296,7 +383,7 @@ class ResourceList:
 
         """
         resources = []
-        for resource in self._resources:
+        for resource in self._entities:
             if attribute in resource.data.keys():
                 resources.append(resource)
         return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
@@ -312,7 +399,7 @@ class ResourceList:
 
         """
         resources = []
-        for resource in self._resources:
+        for resource in self._entities:
             if attribute not in resource.data.keys():
                 resources.append(resource)
         return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
@@ -329,7 +416,7 @@ class ResourceList:
 
         """
         resources = []
-        for resource in self._resources:
+        for resource in self._entities:
             if attribute in resource.data.keys():
                 attribute_value = resource.data.get(attribute)
                 if attribute_value == value:
@@ -348,7 +435,7 @@ class ResourceList:
 
         """
         resources = []
-        for resource in self._resources:
+        for resource in self._entities:
             if attribute in resource.data.keys():
                 attribute_value = resource.data.get(attribute)
                 if not attribute_value == value:
@@ -367,7 +454,7 @@ class ResourceList:
 
         """
         resources = []
-        for resource in self._resources:
+        for resource in self._entities:
             if attribute in resource.data.keys():
                 attribute_value = resource.data.get(attribute)
                 try:
@@ -389,7 +476,7 @@ class ResourceList:
 
         """
         resources = []
-        for resource in self._resources:
+        for resource in self._entities:
             if attribute in resource.data.keys():
                 attribute_value = resource.data.get(attribute)
                 try:
@@ -411,7 +498,7 @@ class ResourceList:
 
         """
         resources = []
-        for resource in self._resources:
+        for resource in self._entities:
             parent = resource.data.get(parent_attribute, {})
             if parent.get(attribute):
                 resources.append(resource)
@@ -429,7 +516,7 @@ class ResourceList:
 
         """
         resources = []
-        for resource in self._resources:
+        for resource in self._entities:
             parent = resource.data.get(parent_attribute, {})
             if not parent.get(attribute):
                 resources.append(resource)
@@ -448,7 +535,7 @@ class ResourceList:
 
         """
         resources = []
-        for resource in self._resources:
+        for resource in self._entities:
             parent = resource.data.get(parent_attribute, {})
             try:
                 if value == parent.get(attribute):
@@ -470,7 +557,7 @@ class ResourceList:
 
         """
         resources = []
-        for resource in self._resources:
+        for resource in self._entities:
             parent = resource.data.get(parent_attribute, {})
             try:
                 if not value == parent.get(attribute):
@@ -492,7 +579,7 @@ class ResourceList:
 
         """
         resources = []
-        for resource in self._resources:
+        for resource in self._entities:
             parent = resource.data.get(parent_attribute, {})
             try:
                 if re.search(regex, parent.get(attribute)):
@@ -514,7 +601,7 @@ class ResourceList:
 
         """
         resources = []
-        for resource in self._resources:
+        for resource in self._entities:
             parent = resource.data.get(parent_attribute, {})
             try:
                 if not re.search(regex, parent.get(attribute)):
@@ -528,8 +615,7 @@ class AttributeList:
     """Object containing attribute objects and providing validation methods for them"""
 
     def __init__(self, validator, attributes):
-        logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
-        self._logger = logging.getLogger(logger_name)
+        self._logger = logging.getLogger(f'{LOGGER_BASENAME}.{self.__class__.__name__}')
         self.validator = validator
         self.attributes = attributes
 
@@ -549,20 +635,13 @@ class AttributeList:
         for attribute in self.attributes:
             if isinstance(attribute.value, list):
                 for entry in attribute.value:
-                    attributes.append(Attribute(attribute._resource,  # pylint: disable=protected-access
-                                                '{}.{}'.format(attribute.name, name),
-                                                entry))
+                    attributes.append(Attribute(attribute._resource, f'{attribute.name}.{name}', entry))  # pylint: disable=protected-access
             else:
                 if name in attribute.value.keys():
-                    attributes.append(Attribute(attribute._resource,  # pylint: disable=protected-access
-                                                '{}.{}'.format(attribute.name, name),
-                                                attribute.value[name]))
+                    attributes.append(Attribute(attribute._resource, f'{attribute.name}.{name}', attribute.value[name]))  # pylint: disable=protected-access
                 elif self.validator.error_on_missing_attribute:
-                    errors.append("[{0}.{1}] should have attribute: '{2}'".format(attribute.resource_type,
-                                                                                  "{0}.{1}".format(
-                                                                                      attribute.resource_name,
-                                                                                      attribute.name),
-                                                                                  attribute.name))
+                    errors.append(f"[{attribute.resource_type}.{attribute.resource_name}.{attribute.name}] "
+                                  f"should have attribute: '{attribute.name}'")
         return AttributeList(self.validator, attributes), errors
 
     @assert_on_error
@@ -582,11 +661,8 @@ class AttributeList:
         errors = []
         for attribute in self.attributes:
             if not attribute.value == value:
-                errors.append("[{0}.{1}.{2}] should be '{3}'. Is: '{4}'".format(attribute.resource_type,
-                                                                                attribute.resource_name,
-                                                                                attribute.name,
-                                                                                value,
-                                                                                attribute.value))
+                errors.append(f"[{attribute.resource_type}.{attribute.resource_name}.{attribute.name}] "
+                              f"should be '{value}'. Is: '{attribute.value}'")
         return None, errors
 
     def if_has_attribute_with_value(self, attribute, value):
@@ -626,11 +702,8 @@ class AttributeList:
         errors = []
         for attribute in self.attributes:
             if attribute.value == value:
-                errors.append("[{0}.{1}.{2}] should not be '{3}'. Is: '{4}'".format(attribute.resource_type,
-                                                                                    attribute.resource_name,
-                                                                                    attribute.name,
-                                                                                    value,
-                                                                                    attribute.value))
+                errors.append(f"[{attribute.resource_type}.{attribute.resource_name}.{attribute.name}] "
+                              f"should not be '{value}'. Is: '{attribute.value}'")
         return None, errors
 
     @assert_on_error
@@ -651,10 +724,8 @@ class AttributeList:
         for attribute in self.attributes:
             for provided_attribute in self.validator.to_list(attributes):
                 if provided_attribute not in attribute.value.keys():
-                    errors.append("[{0}.{1}.{2}] should have attribute: '{3}'".format(attribute.resource_type,
-                                                                                      attribute.resource_name,
-                                                                                      attribute.name,
-                                                                                      provided_attribute))
+                    errors.append(f"[{attribute.resource_type}.{attribute.resource_name}.{attribute.name}] "
+                                  f"should have attribute: '{provided_attribute}'")
         return None, errors
 
     @assert_on_error
@@ -676,10 +747,8 @@ class AttributeList:
         for attribute in self.attributes:
             for required_property_name in attributes:
                 if required_property_name in attribute.value.keys():
-                    errors.append("[{0}.{1}.{2}] should not have attribute: '{3}'".format(attribute.resource_type,
-                                                                                          attribute.resource_name,
-                                                                                          attribute.name,
-                                                                                          required_property_name))
+                    errors.append(f"[{attribute.resource_type}.{attribute.resource_name}.{attribute.name}] "
+                                  f"should not have attribute: '{required_property_name}'")
         return None, errors
 
     @assert_on_error
@@ -700,15 +769,32 @@ class AttributeList:
         for attribute in self.attributes:
             try:
                 if not re.search(regex, attribute.value):
-                    errors.append("[{0}.{1}] should match regex '{2}'".format(attribute.resource_type,
-                                                                              "{0}.{1}".format(attribute.resource_name,
-                                                                                               attribute.name),
-                                                                              regex))
+                    errors.append(f"[{attribute.resource_type}.{attribute.resource_name}.{attribute.name}] "
+                                  f"with value '{attribute.value}' should match regex '{regex}'")
             except (ValueError, TypeError, AttributeError):
-                errors.append("[{0}.{1}] should match regex '{2}'".format(attribute.resource_type,
-                                                                          "{0}.{1}".format(attribute.resource_name,
-                                                                                           attribute.name),
-                                                                          regex))
+                errors.append(f"[{attribute.resource_type}.{attribute.resource_name}.{attribute.name}] "
+                              f"with value '{attribute.value}' should match regex '{regex}'")
+        return None, errors
+
+    @assert_on_error
+    def should_not_match_regex(self, regex):
+        """Checks for regular expression not matching from all contained attributes
+
+        Args:
+            regex (basestring) : A regular expression to not match with
+
+        Raises:
+            AssertionError : If any errors are found on the check
+
+        Returns:
+            None
+
+        """
+        errors = []
+        for attribute in self.attributes:
+            if re.search(regex, attribute.value):
+                errors.append(f"[{attribute.resource_type}.{attribute.resource_name}.{attribute.name}] "
+                              f"with value '{attribute.value}' should not match regex '{regex}'")
         return None, errors
 
     @assert_on_error
@@ -727,9 +813,8 @@ class AttributeList:
             try:
                 json.loads(attribute.value)
             except (ValueError, TypeError, AttributeError):
-                errors.append("[{0}.{1}.{2}] is not valid json".format(attribute.resource_type,
-                                                                       attribute.resource_name,
-                                                                       attribute.name))
+                errors.append(f"[{attribute.resource_type}.{attribute.resource_name}.{attribute.name}] "
+                              f"is not valid json")
         return None, errors
 
 
@@ -751,7 +836,7 @@ class Variable:
 
         """
         if not self.value:
-            raise AssertionError("Variable '{0}' should have a default value".format(self.name))
+            raise AssertionError(f"Variable '{self.name}' should have a default value")
 
     def value_equals(self, value):
         """Checks that the value equals the provided value
@@ -764,9 +849,7 @@ class Variable:
 
         """
         if not self.value == value:
-            raise AssertionError("Variable '{0}' should have a default value of {1}. Is: {2}".format(self.name,
-                                                                                                     value,
-                                                                                                     self.value))
+            raise AssertionError(f"Variable '{self.name}' should have a default value of {value}. Is: {self.value}")
 
     def value_matches_regex(self, regex):
         """Checks that the value matches the provided regex
@@ -779,11 +862,8 @@ class Variable:
 
         """
         if not re.search(regex, self.value):
-            raise AssertionError(
-                "Variable '{0}' value should match regex '{1}'. Is: {2}".format(self.name, regex, self.value))
+            raise AssertionError(f"Variable '{self.name}' value should match regex '{regex}'. Is: {self.value}")
 
-
-Resource = namedtuple('Resource', ['type', 'name', 'data'])
 
 
 class Attribute:

@@ -143,7 +143,12 @@ class TestLintingFeatures(unittest.TestCase):
     def test_count_interpolation(self):
         stack = Stack(self.stack_path, self.count_interpolated_naming_file, None, self.globals_file)
         stack.validate()
-        assert len(stack.errors) == 4
+        assert len(stack.errors) == 0
+
+    def test_length_interpolation(self):
+        stack = Stack(self.stack_path, self.count_interpolated_naming_file, None, self.globals_file)
+        stack.validate()
+        assert len(stack.errors) == 0
 
     def tearDown(self):
         """
@@ -212,12 +217,25 @@ class TestTestingFeatures(unittest.TestCase):
         self.validator = Validator(self.stack_path, self.globals_file, raise_on_missing_variable=True)
 
     def test_resource_parsing(self):
-        assert len(self.validator.resources('random_resource')._resources) == 1
-        assert len(self.validator.resources(['random_resource', 'random_resource_other'])._resources) == 2
+        assert len(self.validator.resources('random_resource')._entities) == 1
+        assert len(self.validator.resources(['random_resource', 'random_resource_other'])._entities) == 2
         assert len(self.validator.resources(['random_resource',
-                                             'random_resource_other']).resources('random_resource')._resources) == 1
+                                             'random_resource_other']).resources('random_resource')._entities) == 1
         assert len(self.validator.resources(['random_resource',
-                                             'random_resource_other']).resources('random_resource')._resources) == 1
+                                             'random_resource_other']).resources('random_resource')._entities) == 1
+
+    def test_data_parsing(self):
+        assert len(self.validator.data('terraform_remote_state')._entities) == 1
+        assert len(self.validator.data('vault_generic_secret')._entities) == 1
+
+    def test_terraform_parsing(self):
+        assert len(self.validator.terraform('backend')._entities) == 1
+
+    def test_provider_parsing(self):
+        assert len(self.validator.provider('aws')._entities) == 1
+        assert len(self.validator.provider('azurerm')._entities) == 1
+        assert len(self.validator.provider('vault')._entities) == 1
+        assert len(self.validator.provider('template')._entities) == 1
 
     def test_missing_variable(self):
         self.assertRaises(MissingVariable, self.validator.get_variable_value, '${var.non_existent}')
@@ -262,86 +280,98 @@ class TestTestingFeatures(unittest.TestCase):
             self.validator.resources('random_resource').should_not_have_attributes(['tags'])
         self.validator.error_on_missing_attribute = False
 
+    def test_data_filtering_on_attribute(self):
+        remote_state = self.validator.data('terraform_remote_state')
+        assert len(remote_state.attribute('platform').if_has_attribute_with_value('backend', 's3').attributes) == 1
+        assert len(remote_state.attribute('platform').if_has_attribute_with_value('backend', 's4').attributes) == 0
+
     def test_filtering_on_attribute(self):
-        assert len(self.validator.resources('azurerm_virtual_machine').if_has_attribute('tags')._resources) == 3
+        assert len(self.validator.resources('azurerm_virtual_machine').if_has_attribute('tags')._entities) == 3
 
     def test_filtering_on_missing_attribute(self):
-        assert len(
-            self.validator.resources('azurerm_virtual_machine').if_not_has_attribute('not_matching')._resources) == 2
+        azurerm_virtual_machine = self.validator.resources('azurerm_virtual_machine')
+        assert len(azurerm_virtual_machine.if_not_has_attribute('not_matching')._entities) == 2
 
     def test_filtering_on_attribute_with_value(self):
-        assert len(self.validator.resources('azurerm_virtual_machine').if_has_attribute_with_value('not_matching',
-                                                                                                   'true')._resources) == 1
+        azurerm_virtual_machine = self.validator.resources('azurerm_virtual_machine')
+        assert len(azurerm_virtual_machine.if_has_attribute_with_value('not_matching', 'true')._entities) == 1
 
     def test_filtering_on_attribute_not_with_value(self):
-        assert len(self.validator.resources('azurerm_virtual_machine').if_not_has_attribute_with_value('not_matching',
-                                                                                                       'false')._resources) == 1
+        azurerm_virtual_machine = self.validator.resources('azurerm_virtual_machine')
+        assert len(azurerm_virtual_machine.if_not_has_attribute_with_value('not_matching', 'false')._entities) == 1
 
     def test_filtering_on_attribute_with_regex_value(self):
-        assert len(self.validator.resources('azurerm_virtual_machine').if_has_attribute_with_regex_value('not_matching',
-                                                                                                         'tr.e')._resources) == 1
+        azurerm_virtual_machine = self.validator.resources('azurerm_virtual_machine')
+        assert len(azurerm_virtual_machine.if_has_attribute_with_regex_value('not_matching', 'tr.e')._entities) == 1
 
     def test_filtering_on_attribute_not_with_regex_value(self):
-        assert len(
-            self.validator.resources('azurerm_virtual_machine').if_not_has_attribute_with_regex_value('not_matching',
-                                                                                                      'fal.e')._resources) == 1
+        azurerm_virtual_machine = self.validator.resources('azurerm_virtual_machine')
+        assert len(azurerm_virtual_machine.if_not_has_attribute_with_regex_value('not_matching',
+                                                                                 'fal.e')._entities) == 1
 
     def test_filtering_on_subattribute(self):
-        assert len(self.validator.resources('azurerm_virtual_machine').if_has_subattribute('tags',
-                                                                                           'subattribute_test')._resources) == 2
+        azurerm_virtual_machine = self.validator.resources('azurerm_virtual_machine')
+        assert len(azurerm_virtual_machine.if_has_subattribute('tags', 'subattribute_test')._entities) == 2
 
     def test_filtering_on_missing_subattribute(self):
-        assert len(self.validator.resources('azurerm_virtual_machine').if_not_has_subattribute('tags',
-                                                                                               'subattribute_test')._resources) == 1
+        azurerm_virtual_machine = self.validator.resources('azurerm_virtual_machine')
+        assert len(azurerm_virtual_machine.if_not_has_subattribute('tags', 'subattribute_test')._entities) == 1
 
     def test_filtering_on_subattribute_with_value(self):
-        assert len(self.validator.resources('azurerm_virtual_machine').if_has_subattribute_with_value('tags',
-                                                                                                      'subattribute_test',
-                                                                                                      'true')._resources) == 1
-        assert len(self.validator.resources('azurerm_virtual_machine').if_not_has_subattribute_with_value('tags',
-                                                                                                          'subattribute_test',
-                                                                                                          'true')._resources) == 2
-        assert len(self.validator.resources('azurerm_virtual_machine').if_not_has_subattribute_with_value('tags',
-                                                                                                          'subattribute_test',
-                                                                                                          'false')._resources) == 2
+        azurerm_virtual_machine = self.validator.resources('azurerm_virtual_machine')
+        assert len(azurerm_virtual_machine.if_has_subattribute_with_value('tags',
+                                                                          'subattribute_test',
+                                                                          'true')._entities) == 1
+        assert len(azurerm_virtual_machine.if_not_has_subattribute_with_value('tags',
+                                                                              'subattribute_test',
+                                                                              'true')._entities) == 2
+        assert len(azurerm_virtual_machine.if_not_has_subattribute_with_value('tags',
+                                                                              'subattribute_test',
+                                                                              'false')._entities) == 2
 
     def test_filtering_on_subattribute_with_regex_value(self):
         self.validator.error_on_missing_attribute = False
-        assert len(self.validator.resources('azurerm_virtual_machine').if_has_subattribute_with_regex_value('tags',
-                                                                                                            'subattribute_test',
-                                                                                                            'tr.e')._resources) == 1
-        assert len(self.validator.resources('azurerm_virtual_machine').if_not_has_subattribute_with_regex_value('tags',
-                                                                                                                'subattribute_test',
-                                                                                                                'tr.e')._resources) == 1
-        assert len(self.validator.resources('azurerm_virtual_machine').if_not_has_subattribute_with_regex_value('tags',
-                                                                                                                'subattribute_test',
-                                                                                                                'fal.e')._resources) == 1
+        azurerm_virtual_machine = self.validator.resources('azurerm_virtual_machine')
+        assert len(azurerm_virtual_machine.if_has_subattribute_with_regex_value('tags',
+                                                                                'subattribute_test',
+                                                                                'tr.e')._entities) == 1
+        assert len(azurerm_virtual_machine.if_not_has_subattribute_with_regex_value('tags',
+                                                                                    'subattribute_test',
+                                                                                    'tr.e')._entities) == 1
+        assert len(azurerm_virtual_machine.if_not_has_subattribute_with_regex_value('tags',
+                                                                                    'subattribute_test',
+                                                                                    'fal.e')._entities) == 1
         self.validator.error_on_missing_attribute = True
 
     def test_nested_attributes(self):
-        assert len(self.validator.resources('azurerm_virtual_machine').attribute('tags').attribute('subattribute_test').attributes) == 2
+        azurerm_virtual_machine = self.validator.resources('azurerm_virtual_machine')
+        assert len(azurerm_virtual_machine.attribute('tags').attribute('subattribute_test').attributes) == 2
         self.validator.error_on_missing_attribute = True
         with self.assertRaises(AssertionError):
             self.validator.resources('azurerm_virtual_machine').attribute('tags').attribute('garbage')
         self.validator.error_on_missing_attribute = False
 
     def test_attribute_should_equal(self):
-        self.assertIsNone(self.validator.resources('azurerm_virtual_machine').attribute('not_matching').should_equal('true'))
+        azurerm_virtual_machine = self.validator.resources('azurerm_virtual_machine')
+        self.assertIsNone(azurerm_virtual_machine.attribute('not_matching').should_equal('true'))
         with self.assertRaises(AssertionError):
             self.validator.resources('azurerm_virtual_machine').attribute('not_matching').should_equal('false')
 
     def test_attribute_should_not_equal(self):
-        self.assertIsNone(self.validator.resources('azurerm_virtual_machine').attribute('not_matching').should_not_equal('false'))
+        azurerm_virtual_machine = self.validator.resources('azurerm_virtual_machine')
+        self.assertIsNone(azurerm_virtual_machine.attribute('not_matching').should_not_equal('false'))
         with self.assertRaises(AssertionError):
             self.validator.resources('azurerm_virtual_machine').attribute('not_matching').should_not_equal('true')
 
     def test_attribute_should_have_attributes(self):
-        self.assertIsNone(self.validator.resources('azurerm_virtual_machine').attribute('tags').should_have_attributes('name'))
+        azurerm_virtual_machine = self.validator.resources('azurerm_virtual_machine')
+        self.assertIsNone(azurerm_virtual_machine.attribute('tags').should_have_attributes('name'))
         with self.assertRaises(AssertionError):
             self.validator.resources('azurerm_virtual_machine').attribute('tags').should_have_attributes('names')
 
     def test_attribute_should_not_have_attributes(self):
-        self.assertIsNone(self.validator.resources('azurerm_virtual_machine').attribute('tags').should_not_have_attributes('names'))
+        azurerm_virtual_machine = self.validator.resources('azurerm_virtual_machine')
+        self.assertIsNone(azurerm_virtual_machine.attribute('tags').should_not_have_attributes('names'))
         with self.assertRaises(AssertionError):
             self.validator.resources('azurerm_virtual_machine').attribute('tags').should_not_have_attributes('name')
 
@@ -352,8 +382,15 @@ class TestTestingFeatures(unittest.TestCase):
         with self.assertRaises(AssertionError):
             self.validator.resources('resource_with_count').attribute('tags').should_match_regex('garbage-.*')
 
+    def test_attribute_should_not_match_regex(self):
+        resource_with_count = self.validator.resources('resource_with_count')
+        self.assertIsNone(resource_with_count.attribute('ami').should_not_match_regex('.whatever-.*'))
+        with self.assertRaises(AssertionError):
+            self.validator.resources('resource_with_count').attribute('ami').should_not_match_regex('ami-.*')
+
     def test_attribute_should_be_json(self):
-        self.assertIsNone(self.validator.resources('azurerm_virtual_machine').attribute('valid_json').should_be_valid_json())
+        self.assertIsNone(
+            self.validator.resources('azurerm_virtual_machine').attribute('valid_json').should_be_valid_json())
         with self.assertRaises(AssertionError):
             self.validator.resources('azurerm_virtual_machine').attribute('tags').should_be_valid_json()
 
@@ -371,3 +408,14 @@ class TestTestingFeatures(unittest.TestCase):
         self.assertIsNone(self.validator.variable('image-aws-rhel74').value_matches_regex('ami-.*'))
         with self.assertRaises(AssertionError):
             self.validator.variable('image-aws-rhel74').value_matches_regex('ami-blah.*')
+
+    def test_resources_with_list_attributes(self):
+        resource = self.validator.resources('resource_with_list_attributes')
+        target_attribute = resource.attribute('os_profile_windows_config').attribute('additional_unattend_config'
+                                                                                     ).attribute('setting_name')
+        self.assertIsNone(target_attribute.if_has_attribute_with_value('setting_name',
+                                                                       'FirstLogonCommands'
+                                                                       ).attribute('content').should_equal('content2'))
+        self.assertIsNone(target_attribute.if_has_attribute_with_value('setting_name',
+                                                                       'AutoLogon'
+                                                                       ).attribute('content').should_equal('content1'))

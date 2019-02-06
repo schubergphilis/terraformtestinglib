@@ -90,8 +90,7 @@ class HclView:  # pylint: disable=too-many-instance-attributes
                  environment_variables=None):
         if environment_variables and not isinstance(environment_variables, dict):
             raise ValueError('Environment variables provided are not in a valid dictionary.')
-        logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
-        self._logger = logging.getLogger(logger_name)
+        self._logger = logging.getLogger(f'{LOGGER_BASENAME}.{self.__class__.__name__}')
         self.state = RecursiveDictionary()
         self._raise_on_missing_variable = raise_on_missing_variable
         self._environment_variables = environment_variables if environment_variables else {}
@@ -118,6 +117,10 @@ class HclView:  # pylint: disable=too-many-instance-attributes
     def _interpolate_state(self, state):
         output = {}
         for resources_type, resources_entries in state.items():
+            if not isinstance(resources_entries, dict):
+                entry = {resources_type: resources_entries}
+                output[resources_type] = entry
+                continue
             entry = {}
             for resource_name, resource_data in resources_entries.items():
                 try:
@@ -126,7 +129,7 @@ class HclView:  # pylint: disable=too-many-instance-attributes
                     counter = None
                 if counter:
                     for number in range(int(self._interpolate_variable(counter))):
-                        name = resource_name + '.{}'.format(number)
+                        name = f'resource_name.{number}'
                         data = self._interpolate_counter(copy.deepcopy(resource_data), str(number))
                         entry[name] = data
                 else:
@@ -180,12 +183,12 @@ class HclView:  # pylint: disable=too-many-instance-attributes
         if isinstance(value, (int, float)):
             return value
         # look for '${' ending in '}' pattern, stop at the first } and performing multiple matches
-        for match in re.finditer(r'\$\{.+?\}', value):
+        for match in re.finditer(r'\${.+?\}', value):
             regex = match.group(0)
             if regex.startswith('${var.'):
                 interpolated_value = self.get_variable_value(regex)
                 if interpolated_value == regex:
-                    self._logger.error('Could not interpolate variable "{}" maybe not set in variables?'.format(value))
+                    self._logger.error('Could not interpolate variable "%s" maybe not set in variables?', value)
                 value = value.replace(regex, str(interpolated_value))
             elif '${format(' in regex:
                 value = self._interpolate_format(value)
@@ -267,8 +270,7 @@ class Parser:  # pylint: disable=too-few-public-methods
                  global_variables_file_path=None,
                  raise_on_missing_variable=True,
                  environment_variables=None):
-        logger_name = u'{base}.{suffix}'.format(base=LOGGER_BASENAME, suffix=self.__class__.__name__)
-        self._logger = logging.getLogger(logger_name)
+        self._logger = logging.getLogger(f'{LOGGER_BASENAME}.{self.__class__.__name__}')
         file_resources, hcl_resources = self._parse_path(configuration_path)
         self.hcl_view = HclView(file_resources,
                                 self._get_global_variables(global_variables_file_path),
