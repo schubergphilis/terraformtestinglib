@@ -41,7 +41,7 @@ from yaml.parser import ParserError
 from schema import SchemaError
 
 from terraformtestinglib.terraformtestinglib import Parser
-from terraformtestinglib.configuration import NAMING_SCHEMA, POSITIONING_SCHEMA
+from terraformtestinglib.configuration import NAMING_SCHEMA, POSITIONING_SCHEMA, DISASTER_RECOVERY_FILENAME
 from terraformtestinglib.terraformtestinglibexceptions import InvalidNaming, InvalidPositioning
 from terraformtestinglib.utils import RuleError, ResourceError, FilenameError, ConfigurationError
 
@@ -236,6 +236,9 @@ class LintingResource:  # pylint: disable=too-many-instance-attributes
             validate_positioning = False
         self._logger.debug('Resource type %s', self.type)
         self._validate_naming()
+        if self.filename == DISASTER_RECOVERY_FILENAME:
+            self._logger.info('Not validating entries for "%s"', DISASTER_RECOVERY_FILENAME)
+            return True
         if validate_positioning:
             self._validate_positioning()
         return True

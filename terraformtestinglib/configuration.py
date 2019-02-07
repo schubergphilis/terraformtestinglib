@@ -60,3 +60,4 @@ NAMING_SCHEMA = Schema([{'resource': str,
                                                'regex': is_valid_regex}]}])
 
 POSITIONING_SCHEMA = Schema({And(str, lambda x: x.endswith('.tf')): [str]})
+DISASTER_RECOVERY_FILENAME = 'disaster_recovery.tf'
