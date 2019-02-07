@@ -76,3 +76,9 @@ History
 ------------------
 
 * implemented all terraform supported entities like, data, terraform and provider.
+
+
+1.4.0 (07-02-2019)
+------------------
+
+* implemented skipping positioning checking for a disaster_recovery.tf file. Refactored container object to expose filtering.
