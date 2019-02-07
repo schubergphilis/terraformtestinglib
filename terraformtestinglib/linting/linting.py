@@ -70,8 +70,12 @@ class Stack(Parser):
                  positioning_file_path=None,
                  global_variables_file_path=None,
                  file_to_skip_for_positioning=None,
-                 raise_on_missing_variable=True):
-        super(Stack, self).__init__(configuration_path, global_variables_file_path, raise_on_missing_variable)
+                 raise_on_missing_variable=True,
+                 environment_variables=None):
+        super(Stack, self).__init__(configuration_path,
+                                    global_variables_file_path,
+                                    raise_on_missing_variable,
+                                    environment_variables)
         self._logger = logging.getLogger(f'{LOGGER_BASENAME}.{self.__class__.__name__}')
         self.path = configuration_path
         self.rules_set = self._get_naming_rules(naming_file_path)
