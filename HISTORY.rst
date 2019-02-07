@@ -82,3 +82,9 @@ History
 ------------------
 
 * implemented skipping positioning checking for a disaster_recovery.tf file. Refactored container object to expose filtering.
+
+
+1.4.1 (07-02-2019)
+------------------
+
+* fixed instantiation of Stack object
