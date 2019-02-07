@@ -181,7 +181,6 @@ class Validator(Parser):
                 output_list.append(entity_object(_type, _type, data))
         return entity_container(self, sorted(output_list, key=attrgetter('name')))
 
-
     def variable(self, name):
         """Returns a variable object of the provided name
 
@@ -336,6 +335,245 @@ class Container:
                     errors.append(f"[{resource.type}.{resource.name}] should not have attribute(s): '{attribute}'")
         return None, errors
 
+    def if_has_attribute(self, attribute):
+        """Filters the entities based on the provided attribute
+
+        Args:
+            attribute (basestring): The attribute to filter the resources on
+
+        Returns:
+             (list) : An entities list object with all resources following the pattern
+
+        """
+        entities = []
+        for entity in self._entities:
+            if attribute in entity.data.keys():
+                entities.append(entity)
+        return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
+
+    def if_not_has_attribute(self, attribute):
+        """Filters the entities based on the non existence of the provided attribute
+
+        Args:
+            attribute (basestring): The attribute to filter the resources on
+
+        Returns:
+            (list)) : An entities list object with all entities following the pattern
+
+        """
+        entities = []
+        for entity in self._entities:
+            if attribute not in entity.data.keys():
+                entities.append(entity)
+        return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
+
+    def if_has_attribute_with_value(self, attribute, value):
+        """Filters the entities based on the provided attribute and value
+
+        Args:
+            attribute (basestring): The attribute to filter the entities on
+            value : The value to match with
+
+        Returns:
+            (list) : An entities list object with all entities following the pattern
+
+        """
+        entities = []
+        for entity in self._entities:
+            if attribute in entity.data.keys():
+                attribute_value = entity.data.get(attribute)
+                if attribute_value == value:
+                    entities.append(entity)
+        return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
+
+    def if_not_has_attribute_with_value(self, attribute, value):
+        """Filters the entities based on the provided attribute and value
+
+        Args:
+            attribute (basestring): The attribute to filter the resources on
+            value : The value to not match
+
+        Returns:
+            (list)) : An entities list object with all entities following the pattern
+
+        """
+        entities = []
+        for entity in self._entities:
+            if attribute in entity.data.keys():
+                attribute_value = entity.data.get(attribute)
+                if not attribute_value == value:
+                    entities.append(entity)
+        return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
+
+    def if_has_attribute_with_regex_value(self, attribute, regex):
+        """Filters the entities based on the provided attribute and value
+
+        Args:
+            attribute (basestring): The attribute to filter the entities on if the value matches the regex provided
+            regex : The regex to match with
+
+        Returns:
+            (list)) : An entities list object with all entities following the pattern
+
+        """
+        entities = []
+        for entity in self._entities:
+            if attribute in entity.data.keys():
+                attribute_value = entity.data.get(attribute)
+                try:
+                    if re.search(regex, attribute_value):
+                        entities.append(entity)
+                except TypeError:
+                    pass
+        return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
+
+    def if_not_has_attribute_with_regex_value(self, attribute, regex):
+        """Filters the entities based on the provided attribute and value
+
+        Args:
+            attribute (basestring): The attribute to filter the entities on if the value does not match the regex
+            regex : The regex not to match with
+
+        Returns:
+            (list)) : An entities list object with all entities following the pattern
+
+        """
+        entities = []
+        for entity in self._entities:
+            if attribute in entity.data.keys():
+                attribute_value = entity.data.get(attribute)
+                try:
+                    if not re.search(regex, attribute_value):
+                        entities.append(entity)
+                except TypeError:
+                    pass
+        return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
+
+    def if_has_subattribute(self, parent_attribute, attribute):
+        """Filters the entities based on the provided parent and child attribute
+
+        Args:
+            parent_attribute (basestring): The parent attribute to filter the resources on
+            attribute (basestring): The child attribute to filter the entities on if it exists
+
+        Returns:
+            (list) : An entities list object with all entities following the pattern
+
+        """
+        entities = []
+        for entity in self._entities:
+            parent = entity.data.get(parent_attribute, {})
+            if parent.get(attribute):
+                entities.append(entity)
+        return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
+
+
+    def if_not_has_subattribute(self, parent_attribute, attribute):
+        """Filters the entities based on the provided parent and child attribute
+
+        Args:
+            parent_attribute (basestring): The parent attribute to filter the entities on
+            attribute (basestring): The child attribute to filter the entities on if it does not exists
+
+        Returns:
+            (list) : An entities list object with all entities following the pattern
+
+        """
+        entities = []
+        for entity in self._entities:
+            parent = entity.data.get(parent_attribute, {})
+            if not parent.get(attribute):
+                entities.append(entity)
+        return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
+
+    def if_has_subattribute_with_value(self, parent_attribute, attribute, value):
+        """Filters the entities based on the provided parent and child attribute and value
+
+        Args:
+            parent_attribute (basestring): The parent attribute to filter the entities on
+            attribute (basestring): The child attribute to filter the entities on
+            value : The value to match with for the child attribute
+
+        Returns:
+            (list) : An entities list object with all entities following the pattern
+
+        """
+        entities = []
+        for entity in self._entities:
+            parent = entity.data.get(parent_attribute, {})
+            try:
+                if value == parent.get(attribute):
+                    entities.append(entity)
+            except TypeError:
+                pass
+        return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
+
+    def if_not_has_subattribute_with_value(self, parent_attribute, attribute, value):
+        """Filters the entities based on the provided parent and child attribute and value
+
+        Args:
+            parent_attribute (basestring): The parent attribute to filter the entities on
+            attribute (basestring): The child attribute to filter the entities on
+            value : The value to not match with for the child attribute
+
+        Returns:
+            (list) : An entities list object with all entities following the pattern
+
+        """
+        entities = []
+        for entity in self._entities:
+            parent = entity.data.get(parent_attribute, {})
+            try:
+                if not value == parent.get(attribute):
+                    entities.append(entity)
+            except TypeError:
+                pass
+        return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
+
+    def if_has_subattribute_with_regex_value(self, parent_attribute, attribute, regex):
+        """Filters the entities based on the provided parent and child attribute and regex for value matching
+
+        Args:
+            parent_attribute (basestring): The parent attribute to filter the entities on
+            attribute (basestring): The child attribute to filter the entities on
+            regex : The regex to match with for the child attribute's value
+
+        Returns:
+            (list) : An entities list object with all entities following the pattern
+
+        """
+        entities = []
+        for entity in self._entities:
+            parent = entity.data.get(parent_attribute, {})
+            try:
+                if re.search(regex, parent.get(attribute)):
+                    entities.append(entity)
+            except TypeError:
+                pass
+        return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
+
+    def if_not_has_subattribute_with_regex_value(self, parent_attribute, attribute, regex):
+        """Filters the entities based on the provided parent and child attribute and regex for value matching
+
+        Args:
+            parent_attribute (basestring): The parent attribute to filter the entities on
+            attribute (basestring): The child attribute to filter the entities on
+            regex : The regex to not match with for the child attribute's value
+
+        Returns:
+            (list) : An entities list object with all entities following the pattern
+
+        """
+        entities = []
+        for entity in self._entities:
+            parent = entity.data.get(parent_attribute, {})
+            try:
+                if not re.search(regex, parent.get(attribute)):
+                    entities.append(entity)
+            except TypeError:
+                pass
+        return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
+
 
 class DataList(Container):
     """A list of data objects being capable to filter on specific requirements"""
@@ -370,244 +608,6 @@ class ResourceList(Container):
         for resource in self._entities:
             if resource.type in resource_types:
                 resources.append(resource)
-        return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
-
-    def if_has_attribute(self, attribute):
-        """Filters the resources based on the provided attribute
-
-        Args:
-            attribute (basestring): The attribute to filter the resources on
-
-        Returns:
-            ResourceList : A resource list object with all resources following the pattern
-
-        """
-        resources = []
-        for resource in self._entities:
-            if attribute in resource.data.keys():
-                resources.append(resource)
-        return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
-
-    def if_not_has_attribute(self, attribute):
-        """Filters the resources based on the non existence of the provided attribute
-
-        Args:
-            attribute (basestring): The attribute to filter the resources on
-
-        Returns:
-            ResourceList : A resource list object with all resources following the pattern
-
-        """
-        resources = []
-        for resource in self._entities:
-            if attribute not in resource.data.keys():
-                resources.append(resource)
-        return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
-
-    def if_has_attribute_with_value(self, attribute, value):
-        """Filters the resources based on the provided attribute and value
-
-        Args:
-            attribute (basestring): The attribute to filter the resources on
-            value : The value to match with
-
-        Returns:
-            ResourceList : A resource list object with all resources following the pattern
-
-        """
-        resources = []
-        for resource in self._entities:
-            if attribute in resource.data.keys():
-                attribute_value = resource.data.get(attribute)
-                if attribute_value == value:
-                    resources.append(resource)
-        return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
-
-    def if_not_has_attribute_with_value(self, attribute, value):
-        """Filters the resources based on the provided attribute and value
-
-        Args:
-            attribute (basestring): The attribute to filter the resources on
-            value : The value to not match
-
-        Returns:
-            ResourceList : A resource list object with all resources following the pattern
-
-        """
-        resources = []
-        for resource in self._entities:
-            if attribute in resource.data.keys():
-                attribute_value = resource.data.get(attribute)
-                if not attribute_value == value:
-                    resources.append(resource)
-        return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
-
-    def if_has_attribute_with_regex_value(self, attribute, regex):
-        """Filters the resources based on the provided attribute and value
-
-        Args:
-            attribute (basestring): The attribute to filter the resources on if the value matches the regex provided
-            regex : The regex to match with
-
-        Returns:
-            ResourceList : A resource list object with all resources following the pattern
-
-        """
-        resources = []
-        for resource in self._entities:
-            if attribute in resource.data.keys():
-                attribute_value = resource.data.get(attribute)
-                try:
-                    if re.search(regex, attribute_value):
-                        resources.append(resource)
-                except TypeError:
-                    pass
-        return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
-
-    def if_not_has_attribute_with_regex_value(self, attribute, regex):
-        """Filters the resources based on the provided attribute and value
-
-        Args:
-            attribute (basestring): The attribute to filter the resources on if the value does not match the regex
-            regex : The regex not to match with
-
-        Returns:
-            ResourceList : A resource list object with all resources following the pattern
-
-        """
-        resources = []
-        for resource in self._entities:
-            if attribute in resource.data.keys():
-                attribute_value = resource.data.get(attribute)
-                try:
-                    if not re.search(regex, attribute_value):
-                        resources.append(resource)
-                except TypeError:
-                    pass
-        return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
-
-    def if_has_subattribute(self, parent_attribute, attribute):
-        """Filters the resources based on the provided parent and child attribute
-
-        Args:
-            parent_attribute (basestring): The parent attribute to filter the resources on
-            attribute (basestring): The child attribute to filter the resources on if it exists
-
-        Returns:
-            ResourceList : A resource list object with all resources following the pattern
-
-        """
-        resources = []
-        for resource in self._entities:
-            parent = resource.data.get(parent_attribute, {})
-            if parent.get(attribute):
-                resources.append(resource)
-        return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
-
-    def if_not_has_subattribute(self, parent_attribute, attribute):
-        """Filters the resources based on the provided parent and child attribute
-
-        Args:
-            parent_attribute (basestring): The parent attribute to filter the resources on
-            attribute (basestring): The child attribute to filter the resources on if it does not exists
-
-        Returns:
-            ResourceList : A resource list object with all resources following the pattern
-
-        """
-        resources = []
-        for resource in self._entities:
-            parent = resource.data.get(parent_attribute, {})
-            if not parent.get(attribute):
-                resources.append(resource)
-        return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
-
-    def if_has_subattribute_with_value(self, parent_attribute, attribute, value):
-        """Filters the resources based on the provided parent and child attribute and value
-
-        Args:
-            parent_attribute (basestring): The parent attribute to filter the resources on
-            attribute (basestring): The child attribute to filter the resources on
-            value : The value to match with for the child attribute
-
-        Returns:
-            ResourceList : A resource list object with all resources following the pattern
-
-        """
-        resources = []
-        for resource in self._entities:
-            parent = resource.data.get(parent_attribute, {})
-            try:
-                if value == parent.get(attribute):
-                    resources.append(resource)
-            except TypeError:
-                pass
-        return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
-
-    def if_not_has_subattribute_with_value(self, parent_attribute, attribute, value):
-        """Filters the resources based on the provided parent and child attribute and value
-
-        Args:
-            parent_attribute (basestring): The parent attribute to filter the resources on
-            attribute (basestring): The child attribute to filter the resources on
-            value : The value to not match with for the child attribute
-
-        Returns:
-            ResourceList : A resource list object with all resources following the pattern
-
-        """
-        resources = []
-        for resource in self._entities:
-            parent = resource.data.get(parent_attribute, {})
-            try:
-                if not value == parent.get(attribute):
-                    resources.append(resource)
-            except TypeError:
-                pass
-        return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
-
-    def if_has_subattribute_with_regex_value(self, parent_attribute, attribute, regex):
-        """Filters the resources based on the provided parent and child attribute and regex for value matching
-
-        Args:
-            parent_attribute (basestring): The parent attribute to filter the resources on
-            attribute (basestring): The child attribute to filter the resources on
-            regex : The regex to match with for the child attribute's value
-
-        Returns:
-            ResourceList : A resource list object with all resources following the pattern
-
-        """
-        resources = []
-        for resource in self._entities:
-            parent = resource.data.get(parent_attribute, {})
-            try:
-                if re.search(regex, parent.get(attribute)):
-                    resources.append(resource)
-            except TypeError:
-                pass
-        return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
-
-    def if_not_has_subattribute_with_regex_value(self, parent_attribute, attribute, regex):
-        """Filters the resources based on the provided parent and child attribute and regex for value matching
-
-        Args:
-            parent_attribute (basestring): The parent attribute to filter the resources on
-            attribute (basestring): The child attribute to filter the resources on
-            regex : The regex to not match with for the child attribute's value
-
-        Returns:
-            ResourceList : A resource list object with all resources following the pattern
-
-        """
-        resources = []
-        for resource in self._entities:
-            parent = resource.data.get(parent_attribute, {})
-            try:
-                if not re.search(regex, parent.get(attribute)):
-                    resources.append(resource)
-            except TypeError:
-                pass
         return ResourceList(self.validator, sorted(resources, key=attrgetter('name')))
 
 
@@ -680,6 +680,26 @@ class AttributeList:
         for attribute_ in self.attributes:
             try:
                 if value == attribute_.value.get(attribute):
+                    attributes.append(attribute_)
+            except TypeError:
+                pass
+        return AttributeList(self.validator, attributes)
+
+    def if_not_has_attribute_with_value(self, attribute, value):
+        """Filters the AttributeList based on the provided attribute and value
+
+        Args:
+            attribute: The attribute to filter on
+            value: the value of the attribute to filter on
+
+        Returns:
+            AttributeList : A container of attribute objects
+
+        """
+        attributes = []
+        for attribute_ in self.attributes:
+            try:
+                if not value == attribute_.value.get(attribute):
                     attributes.append(attribute_)
             except TypeError:
                 pass
