@@ -94,3 +94,9 @@ History
 ------------------
 
 * Updated template and bumped dependencies.
+
+
+1.4.3 (22-10-2019)
+------------------
+
+* Fixed yaml deprecation errors and breakage of format method.
