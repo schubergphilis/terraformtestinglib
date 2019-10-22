@@ -88,3 +88,9 @@ History
 ------------------
 
 * fixed instantiation of Stack object
+
+
+1.4.2 (22-10-2019)
+------------------
+
+* Updated template and bumped dependencies.
