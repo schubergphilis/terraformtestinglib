@@ -166,13 +166,9 @@ class HclView:  # pylint: disable=too-many-instance-attributes
         match = re.search(r'\(.*\)', value)  # look for '(' ending in ')' pattern
         if match:
             contents = match.group(0)[1:-1]
-            value, *arguments = contents.split(',')
-            print(value, arguments)
-            arguments = [eval(argument, {"__builtins__": {}}) for argument in arguments]  # pylint: disable=eval-used
-            string_arguments = ','.join([str(argument) for argument in arguments])
-            print(string_arguments)
-            print([value, string_arguments])
-            value = eval(' % '.join([value, string_arguments], {"__builtins__": {}}))  # pylint: disable=eval-used,too-many-function-args
+            value, argument = contents.split(',')
+            argument = eval(argument, {"__builtins__": {}})  # pylint: disable=eval-used
+            value = eval(' % '.join([value, str(argument)]), {"__builtins__": {}})  # pylint: disable=eval-used
         return value
 
     def _interpolate_length(self, value):

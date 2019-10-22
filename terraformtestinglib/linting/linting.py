@@ -89,7 +89,7 @@ class Stack(Parser):
         try:
             rules_path_file = os.path.expanduser(rules_file)
             with open(rules_path_file, 'r') as rules_file_handle:
-                rules = yaml.load(rules_file_handle.read())
+                rules = yaml.load(rules_file_handle.read(), Loader=yaml.FullLoader)
                 rules_file_handle.close()
             rules = NAMING_SCHEMA.validate(rules)
         except IOError:
@@ -107,7 +107,7 @@ class Stack(Parser):
         try:
             positioning_path_file = os.path.expanduser(positioning_file)
             with open(positioning_path_file, 'r') as positioning_file_handle:
-                positioning = yaml.load(positioning_file_handle.read())
+                positioning = yaml.load(positioning_file_handle.read(), Loader=yaml.FullLoader)
                 positioning_file_handle.close()
             positioning = POSITIONING_SCHEMA.validate(positioning)
         except IOError:
