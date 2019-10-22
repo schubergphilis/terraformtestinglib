@@ -24,7 +24,7 @@
 #
 
 """
-Main code for testing
+Main code for testing.
 
 .. _Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
@@ -59,10 +59,10 @@ LOGGER.addHandler(logging.NullHandler())
 
 
 def assert_on_error(func):
-    """Raises assertion error exceptions if the wrapped method returned any errors"""
+    """Raises assertion error exceptions if the wrapped method returned any errors."""
     @functools.wraps(func)
     def wrapped(*args, **kwargs):
-        """Wrapped method"""
+        """Wrapped method."""
         value, errors = func(*args, **kwargs)
         if errors:
             raise AssertionError('\n\t' + '\n\t'.join(sorted(errors)))
@@ -73,7 +73,7 @@ def assert_on_error(func):
 
 @dataclass
 class Entity:
-    """Basic model of an entity exposing required attributes"""
+    """Basic model of an entity exposing required attributes."""
 
     type: str
     name: str
@@ -82,26 +82,26 @@ class Entity:
 
 @dataclass
 class Resource(Entity):
-    """Basic model of a resource exposing required attributes"""
+    """Basic model of a resource exposing required attributes."""
 
 
 @dataclass
 class Data(Entity):
-    """Basic model of a data object exposing required attributes"""
+    """Basic model of a data object exposing required attributes."""
 
 
 @dataclass
 class Provider(Entity):
-    """Basic model of a provider object exposing required attributes"""
+    """Basic model of a provider object exposing required attributes."""
 
 
 @dataclass
 class Terraform(Entity):
-    """Basic model of a provider object exposing required attributes"""
+    """Basic model of a provider object exposing required attributes."""
 
 
 class Validator(Parser):
-    """Object exposing resources and variables of terraform plans"""
+    """Object exposing resources and variables of terraform plans."""
 
     def __init__(self,
                  configuration_path,
@@ -116,7 +116,7 @@ class Validator(Parser):
         self.error_on_missing_attribute = False
 
     def resources(self, type_):
-        """Filters resources based on resource type which is always cast to list
+        """Filters resources based on resource type which is always cast to list.
 
         Args:
             type_ (basestring|list): The type of resources to filter on. Always gets cast to a list.
@@ -138,7 +138,7 @@ class Validator(Parser):
         return ResourceList(self, sorted(resources, key=attrgetter('name')))
 
     def data(self, type_):
-        """Filters data based on data type which is always cast to list
+        """Filters data based on data type which is always cast to list.
 
         Args:
             type_ (basestring|list): The type of data attributes to filter on. Always gets cast to a list.
@@ -150,7 +150,7 @@ class Validator(Parser):
         return self._entity('data', Data, DataList, type_)
 
     def provider(self, type_):
-        """Filters providers based on provider type which is always cast to list
+        """Filters providers based on provider type which is always cast to list.
 
         Args:
             type_ (basestring|list): The type of provider to filter on. Always gets cast to a list.
@@ -162,7 +162,7 @@ class Validator(Parser):
         return self._entity('provider', Provider, ProviderList, type_)
 
     def terraform(self, type_):
-        """Filters terraform entries based on provided type which is always cast to list
+        """Filters terraform entries based on provided type which is always cast to list.
 
         Args:
             type_ (basestring|list): The type of terraform attributes to filter on. Always gets cast to a list.
@@ -182,7 +182,7 @@ class Validator(Parser):
         return entity_container(self, sorted(output_list, key=attrgetter('name')))
 
     def variable(self, name):
-        """Returns a variable object of the provided name
+        """Returns a variable object of the provided name.
 
         Args:
             name (basestring): The name of the variable to retrieve
@@ -194,7 +194,7 @@ class Validator(Parser):
         return Variable(name, self.hcl_view.state.get('variable', {}).get(name))
 
     def get_variable_value(self, variable):
-        """Retrieves the variable value from the global view state
+        """Retrieves the variable value from the global view state.
 
         Args:
             variable (basestring): The variable to retrieve the value for
@@ -207,7 +207,7 @@ class Validator(Parser):
 
     @staticmethod
     def to_list(value):
-        """Casts to list the provided argument if not a list already
+        """Casts to list the provided argument if not a list already.
 
         Args:
             value (basestring|list): Casts the provided value to list if not already
@@ -222,7 +222,7 @@ class Validator(Parser):
 
 
 class Container:
-    """An object handling the exposing of attributes of different resources of terraform"""
+    """An object handling the exposing of attributes of different resources of terraform."""
 
     def __init__(self, validator_instance, entities):
         self._logger = logging.getLogger(f'{LOGGER_BASENAME}.{self.__class__.__name__}')
@@ -235,7 +235,7 @@ class Container:
 
     @assert_on_error
     def attribute(self, name):
-        """Filters attributes based on the provided name
+        """Filters attributes based on the provided name.
 
         Args:
             name (basestring): The name to match against
@@ -265,7 +265,7 @@ class Container:
 
     @assert_on_error
     def attribute_matching_regex(self, regex):
-        """Filters attributes based on the provided regex
+        """Filters attributes based on the provided regex.
 
         Args:
             regex (basestring): A basestring of a valid regular expression to match against
@@ -293,7 +293,7 @@ class Container:
 
     @assert_on_error
     def should_have_attributes(self, attributes_list):
-        """Validates that the resource has the provided arguments which are always cast to a list
+        """Validates that the resource has the provided arguments which are always cast to a list.
 
         Args:
             attributes_list (list): A list of strings for attributes to check against
@@ -315,7 +315,7 @@ class Container:
 
     @assert_on_error
     def should_not_have_attributes(self, attributes_list):
-        """Validates that the resource does not have the provided arguments which are always cast to a list
+        """Validates that the resource does not have the provided arguments which are always cast to a list.
 
         Args:
             attributes_list (list): A list of strings for attributes to check against
@@ -336,7 +336,7 @@ class Container:
         return None, errors
 
     def if_has_attribute(self, attribute):
-        """Filters the entities based on the provided attribute
+        """Filters the entities based on the provided attribute.
 
         Args:
             attribute (basestring): The attribute to filter the resources on
@@ -352,7 +352,7 @@ class Container:
         return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
 
     def if_not_has_attribute(self, attribute):
-        """Filters the entities based on the non existence of the provided attribute
+        """Filters the entities based on the non existence of the provided attribute.
 
         Args:
             attribute (basestring): The attribute to filter the resources on
@@ -368,7 +368,7 @@ class Container:
         return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
 
     def if_has_attribute_with_value(self, attribute, value):
-        """Filters the entities based on the provided attribute and value
+        """Filters the entities based on the provided attribute and value.
 
         Args:
             attribute (basestring): The attribute to filter the entities on
@@ -387,7 +387,7 @@ class Container:
         return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
 
     def if_not_has_attribute_with_value(self, attribute, value):
-        """Filters the entities based on the provided attribute and value
+        """Filters the entities based on the provided attribute and value.
 
         Args:
             attribute (basestring): The attribute to filter the resources on
@@ -406,7 +406,7 @@ class Container:
         return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
 
     def if_has_attribute_with_regex_value(self, attribute, regex):
-        """Filters the entities based on the provided attribute and value
+        """Filters the entities based on the provided attribute and value.
 
         Args:
             attribute (basestring): The attribute to filter the entities on if the value matches the regex provided
@@ -428,7 +428,7 @@ class Container:
         return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
 
     def if_not_has_attribute_with_regex_value(self, attribute, regex):
-        """Filters the entities based on the provided attribute and value
+        """Filters the entities based on the provided attribute and value.
 
         Args:
             attribute (basestring): The attribute to filter the entities on if the value does not match the regex
@@ -450,7 +450,7 @@ class Container:
         return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
 
     def if_has_subattribute(self, parent_attribute, attribute):
-        """Filters the entities based on the provided parent and child attribute
+        """Filters the entities based on the provided parent and child attribute.
 
         Args:
             parent_attribute (basestring): The parent attribute to filter the resources on
@@ -467,9 +467,8 @@ class Container:
                 entities.append(entity)
         return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
 
-
     def if_not_has_subattribute(self, parent_attribute, attribute):
-        """Filters the entities based on the provided parent and child attribute
+        """Filters the entities based on the provided parent and child attribute.
 
         Args:
             parent_attribute (basestring): The parent attribute to filter the entities on
@@ -487,7 +486,7 @@ class Container:
         return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
 
     def if_has_subattribute_with_value(self, parent_attribute, attribute, value):
-        """Filters the entities based on the provided parent and child attribute and value
+        """Filters the entities based on the provided parent and child attribute and value.
 
         Args:
             parent_attribute (basestring): The parent attribute to filter the entities on
@@ -509,7 +508,7 @@ class Container:
         return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
 
     def if_not_has_subattribute_with_value(self, parent_attribute, attribute, value):
-        """Filters the entities based on the provided parent and child attribute and value
+        """Filters the entities based on the provided parent and child attribute and value.
 
         Args:
             parent_attribute (basestring): The parent attribute to filter the entities on
@@ -531,7 +530,7 @@ class Container:
         return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
 
     def if_has_subattribute_with_regex_value(self, parent_attribute, attribute, regex):
-        """Filters the entities based on the provided parent and child attribute and regex for value matching
+        """Filters the entities based on the provided parent and child attribute and regex for value matching.
 
         Args:
             parent_attribute (basestring): The parent attribute to filter the entities on
@@ -553,7 +552,7 @@ class Container:
         return self.__class__(self.validator, sorted(entities, key=attrgetter('name')))
 
     def if_not_has_subattribute_with_regex_value(self, parent_attribute, attribute, regex):
-        """Filters the entities based on the provided parent and child attribute and regex for value matching
+        """Filters the entities based on the provided parent and child attribute and regex for value matching.
 
         Args:
             parent_attribute (basestring): The parent attribute to filter the entities on
@@ -576,22 +575,22 @@ class Container:
 
 
 class DataList(Container):
-    """A list of data objects being capable to filter on specific requirements"""
+    """A list of data objects being capable to filter on specific requirements."""
 
 
 class ProviderList(Container):
-    """A list of provider objects being capable to filter on specific requirements"""
+    """A list of provider objects being capable to filter on specific requirements."""
 
 
 class TerraformList(Container):
-    """A list of terraform objects being capable to filter on specific requirements"""
+    """A list of terraform objects being capable to filter on specific requirements."""
 
 
 class ResourceList(Container):
-    """A list of resource objects being capable to filter on specific requirements"""
+    """A list of resource objects being capable to filter on specific requirements."""
 
     def resources(self, type_):
-        """Filters resources based on resource type which is always cast to list
+        """Filters resources based on resource type which is always cast to list.
 
         Args:
             type_ (list|basestring): The type of resources to filter on. Always gets cast to list.
@@ -612,7 +611,7 @@ class ResourceList(Container):
 
 
 class AttributeList:
-    """Object containing attribute objects and providing validation methods for them"""
+    """Object containing attribute objects and providing validation methods for them."""
 
     def __init__(self, validator, attributes):
         self._logger = logging.getLogger(f'{LOGGER_BASENAME}.{self.__class__.__name__}')
@@ -621,7 +620,7 @@ class AttributeList:
 
     @assert_on_error
     def attribute(self, name):
-        """Filters attributes on matching the provided name
+        """Filters attributes on matching the provided name.
 
         Args:
             name ( basestring): The name to match the attribute with
@@ -646,7 +645,7 @@ class AttributeList:
 
     @assert_on_error
     def should_equal(self, value):
-        """Checks for equality for the provided value from all contained attributes
+        """Checks for equality for the provided value from all contained attributes.
 
         Args:
             value : The value to match with
@@ -666,7 +665,7 @@ class AttributeList:
         return None, errors
 
     def if_has_attribute_with_value(self, attribute, value):
-        """Filters the AttributeList based on the provided attribute and value
+        """Filters the AttributeList based on the provided attribute and value.
 
         Args:
             attribute: The attribute to filter on
@@ -686,7 +685,7 @@ class AttributeList:
         return AttributeList(self.validator, attributes)
 
     def if_not_has_attribute_with_value(self, attribute, value):
-        """Filters the AttributeList based on the provided attribute and value
+        """Filters the AttributeList based on the provided attribute and value.
 
         Args:
             attribute: The attribute to filter on
@@ -707,7 +706,7 @@ class AttributeList:
 
     @assert_on_error
     def should_not_equal(self, value):
-        """Checks for inequality for the provided value from all contained attributes
+        """Checks for inequality for the provided value from all contained attributes.
 
         Args:
             value : The value to not match with
@@ -728,7 +727,7 @@ class AttributeList:
 
     @assert_on_error
     def should_have_attributes(self, attributes):
-        """Checks for existence for the provided attribute from all contained attributes
+        """Checks for existence for the provided attribute from all contained attributes.
 
         Args:
             attributes : An attribute or list of attributes to check for
@@ -750,7 +749,7 @@ class AttributeList:
 
     @assert_on_error
     def should_not_have_attributes(self, attributes):
-        """Checks for lack for the provided attribute from all contained attributes
+        """Checks for lack for the provided attribute from all contained attributes.
 
         Args:
             attributes : An attribute or list of attributes to check for
@@ -773,7 +772,7 @@ class AttributeList:
 
     @assert_on_error
     def should_match_regex(self, regex):
-        """Checks for regular expression match from all contained attributes
+        """Checks for regular expression match from all contained attributes.
 
         Args:
             regex (basestring) : A regular expression to match with
@@ -798,7 +797,7 @@ class AttributeList:
 
     @assert_on_error
     def should_not_match_regex(self, regex):
-        """Checks for regular expression not matching from all contained attributes
+        """Checks for regular expression not matching from all contained attributes.
 
         Args:
             regex (basestring) : A regular expression to not match with
@@ -819,7 +818,7 @@ class AttributeList:
 
     @assert_on_error
     def should_be_valid_json(self):
-        """Checks whether the value for the attribute is valid json
+        """Checks whether the value for the attribute is valid json.
 
         Raises:
             AssertionError : If any errors are found on the check
@@ -839,14 +838,14 @@ class AttributeList:
 
 
 class Variable:
-    """Models a variable and exposes basic test for it"""
+    """Models a variable and exposes basic test for it."""
 
     def __init__(self, name, value):
         self.name = name
         self.value = value
 
     def value_exists(self):
-        """Checks that the value exists
+        """Checks that the value exists.
 
         Raises:
             AssertionError : If any errors are found on the check
@@ -859,7 +858,7 @@ class Variable:
             raise AssertionError(f"Variable '{self.name}' should have a default value")
 
     def value_equals(self, value):
-        """Checks that the value equals the provided value
+        """Checks that the value equals the provided value.
 
         Raises:
             AssertionError : If any errors are found on the check
@@ -872,7 +871,7 @@ class Variable:
             raise AssertionError(f"Variable '{self.name}' should have a default value of {value}. Is: {self.value}")
 
     def value_matches_regex(self, regex):
-        """Checks that the value matches the provided regex
+        """Checks that the value matches the provided regex.
 
         Raises:
             AssertionError : If any errors are found on the check
@@ -885,9 +884,8 @@ class Variable:
             raise AssertionError(f"Variable '{self.name}' value should match regex '{regex}'. Is: {self.value}")
 
 
-
 class Attribute:
-    """Models the attribute"""
+    """Models the attribute."""
 
     def __init__(self, resource, name, value):
         self._resource = resource
@@ -896,7 +894,7 @@ class Attribute:
 
     @property
     def resource_type(self):
-        """Exposes the type of the parent resource object
+        """Exposes the type of the parent resource object.
 
         Returns:
             type (basestring): The type of the parent resource
@@ -906,7 +904,7 @@ class Attribute:
 
     @property
     def resource_name(self):
-        """Exposes the name of the parent resource object
+        """Exposes the name of the parent resource object.
 
         Returns:
             name (basestring): The name of the parent resource

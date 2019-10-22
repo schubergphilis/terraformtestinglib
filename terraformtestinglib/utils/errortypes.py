@@ -24,7 +24,7 @@
 #
 
 """
-Main code for errortypes
+Main code for errortypes.
 
 .. _Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
@@ -51,7 +51,7 @@ ConfigurationError = namedtuple('ConfigurationError',
 
 
 class ResourceError:  # pylint: disable=too-few-public-methods
-    """Models the Resource error and provides a nice printed version"""
+    """Models the Resource error and provides a nice printed version."""
 
     def __init__(self, filename, resource, entity, field, regex, value, original_value):  # pylint: disable=too-many-arguments
         self.filename = filename
@@ -84,7 +84,7 @@ class ResourceError:  # pylint: disable=too-few-public-methods
 
 
 class FilenameError:  # pylint: disable=too-few-public-methods
-    """Models the Filename error and provides a nice printed version"""
+    """Models the Filename error and provides a nice printed version."""
 
     def __init__(self, filename, resource, target):
         self.filename = filename

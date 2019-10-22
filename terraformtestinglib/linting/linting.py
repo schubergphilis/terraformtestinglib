@@ -24,7 +24,7 @@
 #
 
 """
-Main code for linting
+Main code for linting.
 
 .. _Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
@@ -62,7 +62,7 @@ LOGGER.addHandler(logging.NullHandler())
 
 
 class Stack(Parser):
-    """Manages a stack as a collection of resources that can be checked for name convention"""
+    """Manages a stack as a collection of resources that can be checked for name convention."""
 
     def __init__(self,  # pylint: disable=too-many-arguments
                  configuration_path,
@@ -149,7 +149,7 @@ class Stack(Parser):
         return resource
 
     def validate(self):
-        """Validates all the resources of the stack
+        """Validates all the resources of the stack.
 
         Returns:
             None
@@ -163,7 +163,7 @@ class Stack(Parser):
 
     @property
     def errors(self):
-        """The errors of the validation of the resources of the stack
+        """The errors of the validation of the resources of the stack.
 
         Returns:
             errors (ResourceError|FilenameError) : list of possible linting errors
@@ -173,7 +173,7 @@ class Stack(Parser):
 
 
 class LintingResource:  # pylint: disable=too-many-instance-attributes
-    """Manages a resource and provides validation capabilities."""
+    """Manages a resource and provides validation capabilities.."""
 
     def __init__(self, filename, resource_type, name, data, original_data):  # pylint: disable=too-many-arguments
         self._logger = logging.getLogger(f'{LOGGER_BASENAME}.{self.__class__.__name__}')
@@ -323,7 +323,7 @@ class RuleSet:  # pylint: disable=too-few-public-methods
         self._rules = rules
 
     def get_rule_for_resource(self, resource_name):
-        """Retrieves the rule for the resource name
+        """Retrieves the rule for the resource name.
 
         Args:
             resource_name (basestring): The resource type to retrieve the rule for
@@ -347,7 +347,7 @@ class Rule:
 
     @property
     def errors(self):
-        """List of errors found
+        """List of errors found.
 
         Returns: The errors found
 

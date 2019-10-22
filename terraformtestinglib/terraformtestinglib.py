@@ -24,7 +24,7 @@
 #
 
 """
-Main code for terraformtestinglib
+Main code for terraformtestinglib.
 
 .. _Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
@@ -64,7 +64,7 @@ LOGGER.addHandler(logging.NullHandler())
 
 
 def warning_on_one_line(message, category, filename, lineno, line=None):  # pylint: disable=unused-argument
-    """Warning formating method"""
+    """Warning formating method."""
     return '\n\n%s:%s\n\n' % (category.__name__, message)
 
 
@@ -81,7 +81,7 @@ HclFileResource = namedtuple('HclFileResource', ('filename', 'resource_type', 'r
 
 
 class HclView:  # pylint: disable=too-many-instance-attributes
-    """Object representing the global view of hcl resources along with any global variables"""
+    """Object representing the global view of hcl resources along with any global variables."""
 
     def __init__(self,
                  hcl_resources,
@@ -166,9 +166,13 @@ class HclView:  # pylint: disable=too-many-instance-attributes
         match = re.search(r'\(.*\)', value)  # look for '(' ending in ')' pattern
         if match:
             contents = match.group(0)[1:-1]
-            value, argument = contents.split(',')
-            argument = eval(argument, {"__builtins__": {}})  # pylint: disable=eval-used
-            value = eval(' % '.join([value, str(argument)]), {"__builtins__": {}})  # pylint: disable=eval-used
+            value, *arguments = contents.split(',')
+            print(value, arguments)
+            arguments = [eval(argument, {"__builtins__": {}}) for argument in arguments]  # pylint: disable=eval-used
+            string_arguments = ','.join([str(argument) for argument in arguments])
+            print(string_arguments)
+            print([value, string_arguments])
+            value = eval(' % '.join([value, string_arguments], {"__builtins__": {}}))  # pylint: disable=eval-used,too-many-function-args
         return value
 
     def _interpolate_length(self, value):
@@ -197,7 +201,7 @@ class HclView:  # pylint: disable=too-many-instance-attributes
         return value
 
     def get_variable_value(self, variable):
-        """Retrieves the value of a variable from the global view of variables
+        """Retrieves the value of a variable from the global view of variables.
 
         Args:
             variable (): The variable to look for
@@ -206,6 +210,7 @@ class HclView:  # pylint: disable=too-many-instance-attributes
             MissingValue : If the value does not exist
 
         Returns:
+            value (str): The value retrieved
 
         """
         initial_value = variable
@@ -263,7 +268,7 @@ class HclView:  # pylint: disable=too-many-instance-attributes
 
 
 class Parser:  # pylint: disable=too-few-public-methods
-    """Manages the parsing of terraform files and creating the global hcl view from them"""
+    """Manages the parsing of terraform files and creating the global hcl view from them."""
 
     def __init__(self,
                  configuration_path,

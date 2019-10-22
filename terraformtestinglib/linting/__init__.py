@@ -24,7 +24,7 @@
 #
 
 """
-terraformtestinglib.linting package
+terraformtestinglib.linting package.
 
 Import all parts from terraformtestinglib.linting here
 

@@ -24,7 +24,7 @@
 #
 
 """
-terraformtestinglib.utils package
+terraformtestinglib.utils package.
 
 Import all parts from terraformtestinglib.utils here
 

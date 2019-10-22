@@ -24,7 +24,7 @@
 #
 
 """
-Main code for configuration
+Main code for configuration.
 
 .. _Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
@@ -45,7 +45,7 @@ __status__ = '''Development'''  # "Prototype", "Development", "Production".
 
 
 def is_valid_regex(value):
-    """Validates a regex"""
+    """Validates a regex."""
     try:
         re.compile(value)
         is_valid = True

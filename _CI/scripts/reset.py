@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# File: terraformtestinglibexceptions.py
+# File: reset.py
 #
 # Copyright 2018 Costas Tyfoxylos
 #
@@ -23,32 +23,29 @@
 #  DEALINGS IN THE SOFTWARE.
 #
 
-"""
-Custom exception code for terraformtestinglib.
+import os
+import sys
+import shutil
+import stat
+import logging
 
-.. _Google Python Style Guide:
-   http://google.github.io/styleguide/pyguide.html
+# this sets up everything and MUST be included before any third party module in every step
+import _initialize_template
 
-"""
+from configuration import ENVIRONMENT_VARIABLES
+from library import clean_up, get_project_root_path
 
-__author__ = '''Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>'''
-__docformat__ = '''google'''
-__date__ = '''2018-05-24'''
-__copyright__ = '''Copyright 2018, Costas Tyfoxylos'''
-__credits__ = ["Costas Tyfoxylos"]
-__license__ = '''MIT'''
-__maintainer__ = '''Costas Tyfoxylos'''
-__email__ = '''<ctyfoxylos@schubergphilis.com>'''
-__status__ = '''Development'''  # "Prototype", "Development", "Production".
-
-
-class InvalidNaming(Exception):
-    """The rules file provided was invalid."""
+# This is the main prefix used for logging
+LOGGER_BASENAME = '''_CI.reset'''
+LOGGER = logging.getLogger(LOGGER_BASENAME)
+LOGGER.addHandler(logging.NullHandler())
 
 
-class InvalidPositioning(Exception):
-    """The structure file provided was invalid."""
+def reset(environment_variables):
+    pipfile_path = environment_variables.get('PIPENV_PIPFILE', 'Pipfile')
+    venv = os.path.join(get_project_root_path(), os.path.dirname(pipfile_path), '.venv')
+    clean_up(venv)
 
 
-class MissingVariable(Exception):
-    """The variable is missing."""
+if __name__ == '__main__':
+    reset(ENVIRONMENT_VARIABLES)

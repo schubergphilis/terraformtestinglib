@@ -24,7 +24,7 @@
 #
 
 """
-Main code for utils
+Main code for utils.
 
 .. _Google Python Style Guide:
    http://google.github.io/styleguide/pyguide.html
@@ -44,7 +44,7 @@ __status__ = '''Development'''  # "Prototype", "Development", "Production".
 
 
 class RecursiveDictionary(dict):
-    """Implements recursively updating dictionary
+    """Implements recursively updating dictionary.
 
     RecursiveDictionary provides the methods update and iter_rec_update
     that can be used to update member dictionaries rather than overwriting
@@ -52,7 +52,7 @@ class RecursiveDictionary(dict):
     """
 
     def update(self, other, **third):
-        """Implements the recursion
+        """Implements the recursion.
 
         Recursively update the dictionary with the contents of other and
         third like dict.update() does - but don't overwrite sub-dictionaries.
@@ -65,7 +65,7 @@ class RecursiveDictionary(dict):
         self.iter_rec_update(third.items())
 
     def iter_rec_update(self, iterator):
-        """Updates recursively"""
+        """Updates recursively."""
         for (key, value) in iterator:
             if key in self and isinstance(self[key], dict) and isinstance(value, dict):
                 self[key] = RecursiveDictionary(self[key])
