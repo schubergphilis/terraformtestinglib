@@ -100,3 +100,9 @@ History
 ------------------
 
 * Fixed yaml deprecation errors and breakage of format method.
+
+
+1.4.4 (22-05-2020)
+------------------
+
+* Bumped depenencies, getting terraform 12 compatibility.
