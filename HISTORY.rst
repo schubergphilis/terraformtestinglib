@@ -106,3 +106,9 @@ History
 ------------------
 
 * Bumped depenencies, getting terraform 12 compatibility.
+
+
+1.4.5 (25-05-2020)
+------------------
+
+* bumped dependencies
