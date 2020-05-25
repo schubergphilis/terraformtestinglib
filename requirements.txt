@@ -8,7 +8,7 @@
 # Please use Pipfile to update the requirements.
 #
 pyhcl~=0.4.4
-pyyaml~=5.1.2
-colored~=1.3.93
+pyyaml~=5.3.1
+colored~=1.4.2
 schema~=0.7.2
 colorama~=0.4.3
