@@ -118,3 +118,9 @@ History
 ------------------
 
 * Bumped dependencies.
+
+
+1.4.7 (08-06-2021)
+------------------
+
+* Bumped dependencies.
