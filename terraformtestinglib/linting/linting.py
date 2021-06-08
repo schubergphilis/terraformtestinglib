@@ -375,7 +375,7 @@ class Rule:
             return True
         self._validate_name(resource_type, resource_name)
         self._validate_values(resource_type, resource_name, resource_data, original_data)
-        return True if not self.errors else False
+        return True if not self.errors else False  # pylint: disable=simplifiable-if-expression
 
     def _validate_name(self, resource_type, resource_name):
         rule = re.compile(self.regex)
